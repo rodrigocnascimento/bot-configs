@@ -104,7 +104,7 @@ Skill especializada em revisar código backend Node.js/TypeScript.
 - Revisão de performance e queries
 
 **Configuração:**
-[Instalção](docs/instalação.md)
+[Instalação](docs/instalação.md)
 
 **Uso:**
 ```
