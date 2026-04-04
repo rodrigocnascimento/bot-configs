@@ -129,6 +129,16 @@ meu-projeto/
 
 ---
 
+## 🐄 Cursor
+
+Este repositório também inclui uma configuração completa para o **Cursor IDE** — uma skill de code review automatizado que analisa MRs do GitLab, cruza com critérios de aceite do Jira e posta comentários diretamente no merge request.
+
+Inclui regras de segurança, detecção de anti-patterns, verificação de Clean Architecture, integrações MCP e revisão nível Staff Engineer.
+
+👉 **[Guia completo do Cursor → docs/cursor-config.md](docs/cursor-config.md)**
+
+---
+
 ## 🔒 Regras de Segurança (Block Merge)
 
 Os seguintes problemas **bloqueiam o merge**:
@@ -190,4 +200,4 @@ docs(tdd): adicionar design da feature
 
 ## 📝 Licença
 
-Este repositório é para uso interno da equipe.
+Este repositório está licenciado sob a [MIT License](LICENSE).
