@@ -20,6 +20,49 @@ O objetivo é garantir que qualquer agente de IA trabalhando neste ecossistema s
 
 ---
 
+## 🚀 Como usar
+
+### Configuração Global (OpenCode)
+
+Clone este repositório em `~/.config/opencode/` para usar como config global:
+
+```bash
+git clone git@github.com:rodrigocnascimento/bot-configs.git ~/.config/opencode
+```
+
+Isso faz com que todas as regras, comandos e tools definidos aqui sejam carregados automaticamente em **todos os projetos** que você usar com OpenCode.
+
+### Configuração por Projeto
+
+Em cada projeto, você pode adicionar configs específicas que **se misturam** com as globais. O OpenCode mergeia as duas camadas:
+
+```
+meu-projeto/
+├── .opencode/          # configs extras só deste projeto
+│   ├── rules/          # regras adicionais
+│   ├── commands/       # comandos adicionais
+│   └── agents/         # agents adicionais
+├── AGENTS.md           # contexto específico do projeto
+└── opencode.json       # overrides (modelo, provider, etc)
+```
+
+**Como funciona o merge:**
+- Configs globais (`~/.config/opencode/`) → base que vale pra tudo
+- Configs do projeto (`.opencode/`) → adiciona ou sobrespecifica
+- Se houver conflito, o projeto ganha. Se não, tudo se complementa.
+
+### Exemplo prático
+
+| Onde | O que colocar |
+|---|---|
+| `~/.config/opencode/rules/` | Regras que valem pra **todos** os projetos |
+| `meu-projeto/.opencode/rules/` | Regras extras **só daquele projeto** |
+| `~/.config/opencode/commands/` | Comandos globais (`/tdp`, `/release`, etc) |
+| `meu-projeto/.opencode/commands/` | Comandos extras **só daquele projeto** |
+| `meu-projeto/AGENTS.md` | Contexto da codebase (gerado por `/init`) |
+
+---
+
 ## 🏗️ Estrutura do Repositório
 
 ```
@@ -37,8 +80,6 @@ O objetivo é garantir que qualquer agente de IA trabalhando neste ecossistema s
 │
 └── AGENTS.md           # Guia para agentes de IA
 ```
-
-> **Nota:** Este repositório é projetado para ser clonado em `~/.config/opencode/` como config global do OpenCode.
 
 ---
 
@@ -179,19 +220,6 @@ feat(api): adicionar endpoint de autenticação
 fix(ui): corrigir formatação de data no dashboard
 docs(tdd): adicionar design da feature
 ```
-
----
-
-## 📁 Para Novo Projeto
-
-Ao criar um novo projeto backend:
-
-| Plataforma | Como configurar |
-|------------|-----------------|
-| **OpenCode** | Use o comando `/init` no diretório do projeto |
-| **Cursor** | Solicite ao agente de IA que configure as regras (futuro: skill dedicada) |
-
-Este repositório serve como **referência e template** para as configurações dos agentes.
 
 ---
 
