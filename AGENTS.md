@@ -321,7 +321,7 @@ await repo.query('SELECT * FROM users WHERE email = ?', [email])
 > Auto-generated. Do not edit manually.
 
 
-## comands/code-review.md
+## commands/code-review.md
 
 ---
 description: Revisa código para qualidade e melhores práticas
@@ -343,7 +343,7 @@ Você está no modo de revisão de código. Foque em:
 
 Forneça feedback construtivo sem fazer alterações diretas.
 
-## comands/finish-task.md
+## commands/finish-task.md
 
 ---
 description: Finalizar tarefa, resumir entrega e solicitar aprovação
@@ -408,7 +408,7 @@ Após exibir o resumo, você deve PARAR e perguntar exatamente:
 ## Tarefa Solicitada
 $ARGUMENTS
 
-## comands/release.md
+## commands/release.md
 
 ---
 description: Executar release update após aprovação explícita
@@ -515,7 +515,7 @@ Tarefa Solicitada
 
 $ARGUMENTS
 
-## comands/tdp.md
+## commands/tdp.md
 
 ---
 description: Iniciar Technical Design Phase (TDP)
