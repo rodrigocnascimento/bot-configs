@@ -104,13 +104,7 @@ Skill especializada em revisar código backend Node.js/TypeScript.
 - Revisão de performance e queries
 
 **Configuração:**
-```bash
-# Instalar CLI do GitLab
-brew install glab
-
-# Autenticar
-glab auth login
-```
+[Instalção](docs/instalação.md)
 
 **Uso:**
 ```
