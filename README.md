@@ -131,9 +131,16 @@ meu-projeto/
 
 ## 🐄 Cursor
 
-Configurações, skills e regras para o Cursor IDE estão em um documento dedicado:
+Este repositório também inclui configurações completas para o **Cursor IDE**, com:
 
-👉 **[Cursor Config — docs/cursor-config.md](docs/cursor-config.md)**
+- **Skill de code review automatizado** — analisa MRs do GitLab, cruza com critérios de aceite do Jira e posta comentários diretamente no merge request
+- **Regras de review** — análise de segurança (OWASP), detecção de anti-patterns, verificação de Clean Architecture, revisão de performance
+- **Integrações MCP** — Jira (tickets e critérios de aceite) e GitLab (MRs e comentários)
+- **Revisão nível Staff Engineer** — feedback profundo sobre arquitetura, design de código e boas práticas
+
+Toda a documentação, instalação e guia de uso estão em um documento dedicado:
+
+### 👉 **[Cursor Config — Guia Completo](docs/cursor-config.md)**
 
 ---
 
