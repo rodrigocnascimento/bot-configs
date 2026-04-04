@@ -131,36 +131,9 @@ meu-projeto/
 
 ## 🐄 Cursor
 
-**Cursor** é um IDE com capacidades de IA para code review automatizado e pair programming.
+Configurações, skills e regras para o Cursor IDE estão em um documento dedicado:
 
-### Skills Cursor
-
-#### backend-code-review
-Skill especializada em revisar código backend Node.js/TypeScript.
-
-**Funcionalidades:**
-- Validação de requisitos do Jira
-- Detecção de anti-patterns
-- Análise de segurança
-- Verificação de arquitetura Clean Architecture
-- Revisão de performance e queries
-
-**Configuração:**
-[Instalação](docs/instalação.md)
-
-**Uso:**
-```
-/backend-code-review revise o MR: https://gitlab.com/projeto/-/merge_requests/123
-```
-
-### Regras Cursor
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `backend-review-mode.md` | Modo de revisão técnica profunda |
-| `backend-security-review.md` | Análise de segurança (OWASP-inspired) |
-| `backend-anti-patterns.md` | Detecção de anti-patterns |
-| `staff-engineer-review.md` | Revisão de nível Staff Engineer |
+👉 **[Cursor Config — docs/cursor-config.md](docs/cursor-config.md)**
 
 ---
 
@@ -220,21 +193,6 @@ feat(api): adicionar endpoint de autenticação
 fix(ui): corrigir formatação de data no dashboard
 docs(tdd): adicionar design da feature
 ```
-
----
-
-## 🔗 Integrações
-
-### MCP (Model Context Protocol)
-
-O repositório já inclui configurações para:
-
-| Serviço | Descrição |
-|---------|-----------|
-| **Atlassian (Jira)** | Ler tickets e critérios de aceite |
-| **GitLab** | Acessar MRs e postar comentários |
-
-Configuração em `.cursor/mcp.json`.
 
 ---
 
