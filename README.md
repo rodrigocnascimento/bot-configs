@@ -23,11 +23,10 @@ O objetivo é garantir que qualquer agente de IA trabalhando neste ecossistema s
 ## 🏗️ Estrutura do Repositório
 
 ```
-├── .opencode/          # Configurações do OpenCode
-│   ├── rules/          # Regras operacionais
-│   ├── commands/       # Comandos personalizados
-│   └── agents/         # Agentes especializados
-│
+├── rules/              # Regras operacionais do OpenCode
+├── commands/           # Comandos personalizados do OpenCode
+├── skills/             # Skills especializadas
+├── tools/              # Ferramentas customizadas
 ├── .cursor/            # Configurações do Cursor
 │   ├── rules/          # Regras de review
 │   ├── skills/         # Skills especializadas
@@ -39,11 +38,13 @@ O objetivo é garantir que qualquer agente de IA trabalhando neste ecossistema s
 └── AGENTS.md           # Guia para agentes de IA
 ```
 
+> **Nota:** Este repositório é projetado para ser clonado em `~/.config/opencode/` como config global do OpenCode.
+
 ---
 
 ## 🤖 OpenCode
 
-**OpenCode** é um agente de IA que opera diretamente no repositório, seguindo regras definidas em `.opencode/rules/`.
+**OpenCode** é um agente de IA que opera diretamente no repositório, seguindo regras definidas em `rules/`.
 
 ### Regras OpenCode
 
