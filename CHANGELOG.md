@@ -4,6 +4,24 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.1.0] - 2026-04-13
+
+### Added
+- OpenCode curl-to-bash installer system for easy distribution
+- GitHub Actions workflow (generate-installer.yml) for manual installer generation
+- installer.config for centralized folder configuration
+- generate-installer.sh script for local installer generation
+- INSTALLER.md documentation for the installer system
+- Technical Design Document (specs/tdd-opencode-installer.md)
+
+### Features
+- Hybrid approach: centralized config (Option B) + environment variable override (Option C)
+- Users can install via: `curl -fsSL ... | bash`
+- Users can customize folders: `PASTAS="commands docs" curl ... | bash`
+- Maintainer can generate installer via GitHub Actions without local execution
+
+---
+
 ## [1.0.2] - 2026-04-03
 
 ### Added

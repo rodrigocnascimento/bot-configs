@@ -1,0 +1,64 @@
+name: Generate OpenCode Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      folders:
+        description: 'Pastas a incluir (deixe em branco para usar installer.config)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup environment
+        run: |
+          echo "Generating OpenCode installer..."
+          chmod +x ./generate-installer.sh
+          
+      - name: Generate installer
+        run: |
+          ./generate-installer.sh
+          
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          
+          if [[ -n "${{ github.event.inputs.folders }}" ]]; then
+            # Se o usuário informou pastas customizadas, atualiza o config
+            echo "Updating DEFAULT_FOLDERS to: ${{ github.event.inputs.folders }}"
+            sed -i 's/^DEFAULT_FOLDERS=.*/DEFAULT_FOLDERS="${{ github.event.inputs.folders }}"/' installer.config
+          fi
+          
+          git add dist/install-opencode.sh installer.config
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: regenerate installer $(date -I)"
+            git push
+            echo "✅ Installer updated successfully!"
+          fi
+          
+      - name: Summary
+        run: |
+          echo "## OpenCode Installer Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Distribution URL:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/dist/install-opencode.sh" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Usage:**" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/dist/install-opencode.sh | bash" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
