@@ -9,11 +9,21 @@ tools:
   bash: false
 ---
 
-Você está no modo de revisão de código. Foque em:
+Carregue a skill backend-code-review e execute o workflow completo de revisão.
 
-- Qualidade do código e melhores práticas
-- Bugs potenciais e casos de borda
-- Implicações de desempenho
-- Considerações de segurança
+Aplique todas as regras definidas em:
+
+- rules/backend-anti-patterns.md
+- rules/backend-security-review.md
+- rules/staff-engineer-review.md
+- skills/backend-code-review/references/review-rules.md
+
+Use os templates de comentário definidos em:
+
+- skills/backend-code-review/references/comment-templates.md
 
 Forneça feedback construtivo sem fazer alterações diretas.
+
+## Tarefa Solicitada
+
+$ARGUMENTS
