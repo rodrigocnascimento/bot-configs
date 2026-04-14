@@ -4,6 +4,20 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.2.0] - 2026-04-14
+
+### Added
+- Hard gate for Issue ID and work branch creation in TDP command (`commands/tdp.md`)
+- Backend anti-patterns detection rule (`rules/backend-anti-patterns.md`)
+- Backend security review rule based on OWASP (`rules/backend-security-review.md`)
+- Staff Engineer review rule with 6 dimensions (`rules/staff-engineer-review.md`)
+- Backend code review skill with 5-step workflow (`skills/backend-code-review/SKILL.md`)
+- Review rules reference for code review (`skills/backend-code-review/references/review-rules.md`)
+- Comment templates for structured feedback (`skills/backend-code-review/references/comment-templates.md`)
+- Updated code review command to invoke the backend-code-review skill
+
+---
+
 ## [1.1.0] - 2026-04-13
 
 ### Added
