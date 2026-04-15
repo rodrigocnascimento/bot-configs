@@ -4,6 +4,26 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.3.0] - 2026-04-14
+
+### Added
+- Version tracking via `opencode.version` file for self-update capability
+- `--update` flag on installer: updates only if newer version available, with backup
+- `--check` flag on installer: compares local vs latest version without downloading
+- `--force` flag on installer: forces reinstall without prompting
+- `semver_compare()` and `get_latest_version()` in installer for version detection
+- `backup_existing()` mechanism (`.opencode/` → `.opencode.bak/`)
+- OpenCode `/update` command (`.opencode/commands/update.md`)
+- TDD for self-update feature (`specs/tdd-opencode-self-update.md`)
+
+### Changed
+- `installer.config`: added `VERSION_FILE` and `RELEASES_API_URL` config vars
+- `generate-installer.sh`: embedded version from `opencode.version`, generates installer with update/check/force support
+- `dist/install-opencode.sh`: regenerated with all new functionality
+- `INSTALLER.md`: documented update, check, backup, and version workflows
+
+---
+
 ## [1.2.0] - 2026-04-14
 
 ### Added

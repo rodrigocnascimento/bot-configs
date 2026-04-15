@@ -10,6 +10,15 @@
 #   Or with custom folders:
 #   PASTAS="commands docs" curl -fsSL ... | bash
 #
+#   Update mode (only updates if newer version available):
+#   curl -fsSL ... | bash -s -- --update
+#
+#   Check mode (reports version status, no download):
+#   curl -fsSL ... | bash -s -- --check
+#
+#   Force reinstall:
+#   curl -fsSL ... | bash -s -- --force
+#
 
 set -euo pipefail
 
@@ -18,6 +27,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m'
 
 # Configuration
@@ -27,10 +37,22 @@ GITHUB_BRANCH="main"
 RAW_URL="https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}"
 API_URL="https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents"
 CONFIG_URL="${RAW_URL}/installer.config"
+RELEASES_API_URL="https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases"
+VERSION_FILE="opencode.version"
+BACKUP_DIR_NAME=".opencode.bak"
+
+# Embedded version (updated at generation time)
+EMBEDDED_VERSION="1.3.0"
 
 # Target directory
 TARGET_DIR="${PWD}/.opencode"
 TEMP_DIR=""
+
+# Mode flags
+MODE_INSTALL=true
+MODE_UPDATE=false
+MODE_CHECK=false
+MODE_FORCE=false
 
 # Cleanup function
 cleanup() {
@@ -47,6 +69,48 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 warning() { echo -e "${YELLOW}⚠${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1" >&2; }
 
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --update|-u)
+                MODE_INSTALL=false
+                MODE_UPDATE=true
+                shift
+                ;;
+            --check|-c)
+                MODE_INSTALL=false
+                MODE_CHECK=true
+                shift
+                ;;
+            --force|-f)
+                MODE_FORCE=true
+                shift
+                ;;
+            --help|-h)
+                echo -e "${BOLD}OpenCode Config Installer${NC}"
+                echo ""
+                echo "Usage: curl -fsSL <url> | bash [-s -- <options>]"
+                echo ""
+                echo "Options:"
+                echo "  --update, -u    Update only if newer version available"
+                echo "  --check, -c     Check version status without downloading"
+                echo "  --force, -f     Force reinstall/overwrite without prompting"
+                echo "  --help, -h      Show this help message"
+                echo ""
+                echo "Environment variables:"
+                echo "  PASTAS          Custom folders to install (space-separated)"
+                exit 0
+                ;;
+            *)
+                error "Unknown option: $1"
+                error "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+    done
+}
+
 # Check dependencies
 check_deps() {
     local deps=("curl")
@@ -56,6 +120,55 @@ check_deps() {
             exit 1
         fi
     done
+}
+
+# Compare two semver versions
+# Outputs: "<" if v1 < v2, ">" if v1 > v2, "=" if equal
+semver_compare() {
+    local v1="$1" v2="$2"
+    local IFS='.'
+    # shellcheck disable=SC2207
+    local a=(); read -ra a <<< "$v1"
+    # shellcheck disable=SC2207
+    local b=(); read -ra b <<< "$v2"
+
+    for i in 0 1 2; do
+        local ai=$(( 10#${a[i]:-0} ))
+        local bi=$(( 10#${b[i]:-0} ))
+        if (( ai < bi )); then echo "<"; return; fi
+        if (( ai > bi )); then echo ">"; return; fi
+    done
+
+    echo "="
+}
+
+# Get local installed version
+get_local_version() {
+    if [[ -f "${TARGET_DIR}/${VERSION_FILE}" ]]; then
+        cat "${TARGET_DIR}/${VERSION_FILE}" | tr -d '[:space:]'
+    else
+        echo "0.0.0"
+    fi
+}
+
+# Get latest version from GitHub
+get_latest_version() {
+    local latest_version=""
+
+    # Try GitHub releases API first
+    latest_version=$(curl -sf "${RELEASES_API_URL}/latest" 2>/dev/null | grep '"tag_name"' | head -1 | cut -d'"' -f4 | sed 's/^v//') || true
+
+    # Fallback: read package.json version from GitHub Raw
+    if [[ -z "$latest_version" ]]; then
+        latest_version=$(curl -sf "${RAW_URL}/package.json" 2>/dev/null | grep '"version"' | head -1 | cut -d'"' -f4) || true
+    fi
+
+    # Fallback: read opencode.version from GitHub Raw
+    if [[ -z "$latest_version" ]]; then
+        latest_version=$(curl -sf "${RAW_URL}/${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]') || true
+    fi
+
+    echo "${latest_version:-0.0.0}"
 }
 
 # Fetch and parse installer.config from GitHub
@@ -110,8 +223,7 @@ download_folder() {
         return 1
     }
     
-    # Parse JSON and download files (using basic grep/sed for portability)
-    # This extracts "path" values from the JSON array
+    # Parse JSON and download files
     local files
     files=$(echo "$contents" | grep '"path"' | cut -d'"' -f4)
     
@@ -143,7 +255,7 @@ download_folder() {
     return $fail_count
 }
 
-# Alternative: Download using git archive (if available)
+# Alternative: Download using git archive
 download_folder_git() {
     local folder="$1"
     local temp_zip
@@ -154,10 +266,8 @@ download_folder_git() {
     local archive_url="https://github.com/${GITHUB_USER}/${GITHUB_REPO}/archive/${GITHUB_BRANCH}.zip"
     
     if curl -fsSL "$archive_url" -o "$temp_zip" 2>/dev/null; then
-        # Extract specific folder
         if command -v unzip &> /dev/null; then
             unzip -q "$temp_zip" "${GITHUB_REPO}-${GITHUB_BRANCH}/${folder}/*" -d "$TEMP_DIR"
-            # Move to target
             if [[ -d "${TEMP_DIR}/${GITHUB_REPO}-${GITHUB_BRANCH}/${folder}" ]]; then
                 mkdir -p "${TARGET_DIR}/${folder}"
                 cp -r "${TEMP_DIR}/${GITHUB_REPO}-${GITHUB_BRANCH}/${folder}"/* "${TARGET_DIR}/${folder}/"
@@ -170,8 +280,149 @@ download_folder_git() {
     return 1
 }
 
-# Main installation function
-install_opencode() {
+# Download version file
+download_version_file() {
+    local dest_path="${TARGET_DIR}/${VERSION_FILE}"
+    info "Downloading version file..."
+    if download_file "${VERSION_FILE}" "$dest_path"; then
+        # Ensure the embedded version is written
+        echo "${EMBEDDED_VERSION}" > "$dest_path"
+        success "Version file written: ${EMBEDDED_VERSION}"
+        return 0
+    else
+        # Write embedded version as fallback
+        echo "${EMBEDDED_VERSION}" > "$dest_path"
+        success "Version file written (embedded): ${EMBEDDED_VERSION}"
+        return 0
+    fi
+}
+
+# Backup existing .opencode directory
+backup_existing() {
+    local backup_dir="${PWD}/${BACKUP_DIR_NAME}"
+    
+    if [[ ! -d "$TARGET_DIR" ]]; then
+        return 0
+    fi
+    
+    # Remove old backup if exists
+    if [[ -d "$backup_dir" ]]; then
+        rm -rf "$backup_dir"
+    fi
+    
+    info "Backing up existing .opencode/ to ${BACKUP_DIR_NAME}/..."
+    cp -r "$TARGET_DIR" "$backup_dir"
+    success "Backup created: ${BACKUP_DIR_NAME}/"
+}
+
+# Check mode — only compare versions
+do_check() {
+    echo -e "${BOLD}OpenCode Version Check${NC}"
+    echo "========================="
+    echo ""
+    
+    check_deps
+    
+    local local_version
+    local_version=$(get_local_version)
+    
+    local latest_version
+    latest_version=$(get_latest_version)
+    
+    echo -e "Installed version: ${GREEN}${local_version}${NC}"
+    echo -e "Latest version:    ${GREEN}${latest_version}${NC}"
+    echo ""
+    
+    local comparison
+    comparison=$(semver_compare "${local_version}" "${latest_version}")
+    
+    case "$comparison" in
+        "<")
+            echo -e "${YELLOW}⚠ Update available: ${local_version} → ${latest_version}${NC}"
+            echo ""
+            echo "To update, run:"
+            echo "  curl -fsSL https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/dist/install-opencode.sh | bash -s -- --update"
+            ;;
+        "=")
+            echo -e "${GREEN}✓ Already up to date (${local_version})${NC}"
+            ;;
+        ">")
+            echo -e "${BLUE}ℹ Installed version (${local_version}) is newer than latest release (${latest_version})${NC}"
+            ;;
+        *)
+            echo -e "${YELLOW}⚠ Could not determine version relationship${NC}"
+            ;;
+    esac
+}
+
+# Update mode — only update if newer version available
+do_update() {
+    echo -e "${BOLD}OpenCode Config Updater${NC}"
+    echo "========================="
+    echo ""
+    
+    check_deps
+    TEMP_DIR=$(mktemp -d)
+    
+    local local_version
+    local_version=$(get_local_version)
+    
+    local latest_version
+    latest_version=$(get_latest_version)
+    
+    echo -e "Installed version: ${GREEN}${local_version}${NC}"
+    echo -e "Latest version:    ${GREEN}${latest_version}${NC}"
+    echo ""
+    
+    if [[ "${local_version}" == "0.0.0" ]]; then
+        info "No existing installation found. Performing fresh install..."
+        do_install
+        return
+    fi
+    
+    local comparison
+    comparison=$(semver_compare "${local_version}" "${latest_version}")
+    
+    case "$comparison" in
+        "=")
+            success "Already up to date (${local_version}). No update needed."
+            exit 0
+            ;;
+        ">")
+            info "Installed version (${local_version}) is newer than latest release (${latest_version})."
+            info "Skipping update."
+            exit 0
+            ;;
+        "<")
+            echo -e "${YELLOW}Update available: ${local_version} → ${latest_version}${NC}"
+            echo ""
+            
+            # Backup before update
+            backup_existing
+            
+            if [[ "${MODE_FORCE}" != true ]]; then
+                read -p "Proceed with update? (Y/n): " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Nn]$ ]]; then
+                    info "Update cancelled"
+                    exit 0
+                fi
+            fi
+            
+            # Proceed with installation (overwrite existing)
+            info "Updating..."
+            rm -rf "$TARGET_DIR"
+            do_install
+            ;;
+        *)
+            error "Could not determine version relationship"
+            exit 1
+            ;;
+    esac
+}
+
+# Install mode — fresh or forced install
+do_install() {
     echo -e "${GREEN}OpenCode Config Installer${NC}"
     echo "========================="
     echo ""
@@ -180,17 +431,17 @@ install_opencode() {
     check_deps
     
     # Create temp directory
-    TEMP_DIR=$(mktemp -d)
+    if [[ -z "${TEMP_DIR:-}" ]]; then
+        TEMP_DIR=$(mktemp -d)
+    fi
     
     # Determine folders to install
     local folders_to_install
     
     if [[ -n "${PASTAS:-}" ]]; then
-        # Use environment variable override (Option C)
         info "Using custom folders from PASTAS environment variable"
         folders_to_install="$PASTAS"
     else
-        # Fetch from config (Option B)
         info "Fetching default configuration from GitHub..."
         folders_to_install=$(fetch_config) || {
             error "Could not fetch configuration"
@@ -204,14 +455,19 @@ install_opencode() {
     
     # Check if target directory exists
     if [[ -d "$TARGET_DIR" ]]; then
-        warning ".opencode/ already exists in current directory"
-        read -p "Overwrite? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            info "Installation cancelled"
-            exit 0
+        if [[ "${MODE_FORCE}" == true ]]; then
+            warning "Force mode: overwriting existing .opencode/"
+            rm -rf "$TARGET_DIR"
+        else
+            warning ".opencode/ already exists in current directory"
+            read -p "Overwrite? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                info "Installation cancelled"
+                exit 0
+            fi
+            rm -rf "$TARGET_DIR"
         fi
-        rm -rf "$TARGET_DIR"
     fi
     
     # Create target directory
@@ -228,12 +484,14 @@ install_opencode() {
         if download_folder "$folder"; then
             ((success_folders++))
         else
-            # Try alternative method
             if download_folder_git "$folder"; then
                 ((success_folders++))
             fi
         fi
     done
+    
+    # Download version file
+    download_version_file
     
     echo ""
     echo "========================="
@@ -241,6 +499,7 @@ install_opencode() {
         success "Installation complete! (${success_folders}/${total_folders} folders)"
         echo ""
         info "Installed to: ${TARGET_DIR}"
+        info "Version: ${EMBEDDED_VERSION}"
         success "OpenCode is ready to use!"
     else
         warning "Installation completed with issues (${success_folders}/${total_folders} folders)"
@@ -248,5 +507,17 @@ install_opencode() {
     fi
 }
 
-# Run installation
-install_opencode "$@"
+# Main entry point
+main() {
+    parse_args "$@"
+    
+    if [[ "$MODE_CHECK" == true ]]; then
+        do_check
+    elif [[ "$MODE_UPDATE" == true ]]; then
+        do_update
+    else
+        do_install
+    fi
+}
+
+main "$@"
