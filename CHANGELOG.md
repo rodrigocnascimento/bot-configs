@@ -4,6 +4,17 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.3.1] - 2026-04-15
+
+### Changed
+- Rewrote README.md to reflect installer-based workflow with 3 installation methods
+- Added "Atualizar" section documenting `--update`, `--check`, `--force` flags and backup mechanism
+- Added "Versionamento" section explaining `opencode.version` and semver comparison
+- Updated repository structure diagram with `dist/`, `opencode.version`, `installer.config`, `INSTALLER.md`
+- Added `INSTALLER.md` reference in documentation table
+
+---
+
 ## [1.3.0] - 2026-04-14
 
 ### Added
