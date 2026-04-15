@@ -42,7 +42,7 @@ VERSION_FILE="opencode.version"
 BACKUP_DIR_NAME=".opencode.bak"
 
 # Embedded version (updated at generation time)
-EMBEDDED_VERSION="1.3.0"
+EMBEDDED_VERSION="1.3.1"
 
 # Target directory
 TARGET_DIR="${PWD}/.opencode"
