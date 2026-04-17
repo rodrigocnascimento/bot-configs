@@ -169,8 +169,8 @@ parse_args() {
 
 # Check dependencies
 check_deps() {
-    local deps=("curl")
-    for dep in "\${deps[@]}"; do
+    local deps=("curl" "jq")
+    for dep in "${deps[@]}"; do
         if ! command -v "\$dep" &> /dev/null; then
             error "\$dep is required but not installed"
             exit 1
@@ -278,6 +278,44 @@ download_folder() {
         error "Failed to fetch directory listing for \${folder}"
         return 1
     }
+    
+    # Parse JSON and download recursively using jq
+    local success_count=0
+    local fail_count=0
+    
+    # Use jq to iterate through items and differentiate files from directories
+    while IFS=\$'\t' read -r type path; do
+        [[ -z "\$path" ]] && continue
+        [[ "\$path" == "\$folder" ]] && continue
+        
+        local dest_path="\${TARGET_DIR}/\${path}"
+        
+        if [[ "\$type" == "dir" ]]; then
+            # Recursively download subdirectory
+            if download_folder "\$path"; then
+                ((success_count++))
+            else
+                ((fail_count++))
+            fi
+        else
+            # Download file
+            if download_file "\$path" "\$dest_path"; then
+                ((success_count++))
+            else
+                ((fail_count++))
+                warning "Failed to download: \${path}"
+            fi
+        fi
+    done <<< "\$(echo "\$contents" | jq -r '.[] | "\(.type)\t\(.path)"')"
+    
+    if [[ \$fail_count -eq 0 ]]; then
+        success "Downloaded \${success_count} items from \${folder}"
+    else
+        warning "Downloaded \${success_count} items, \${fail_count} failed from \${folder}"
+    fi
+    
+    return \$fail_count
+}
     
     # Parse JSON and download files
     local files

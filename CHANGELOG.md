@@ -4,6 +4,18 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.3.2] - 2026-04-17
+
+### Fixed
+- Bug no instalador que tentava baixar subdiretórios como arquivos (não fazia recursão)
+- Agora usa `jq` para diferenciar arquivos de subdiretórios e baixa recursivamente todo conteúdo das pastas definidas em `PASTAS`
+- Corrigido problema com `set -u` que impedia geração do installer
+
+### Changed
+- Adicionado `jq` como dependência do instalador
+
+---
+
 ## [1.3.1] - 2026-04-15
 
 ### Changed
