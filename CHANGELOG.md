@@ -4,6 +4,17 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.4.0] - 2026-04-18
+
+### Added
+- Detecção de contexto global vs local no instalador
+  - Se executado de ~/.config → cria "opencode/" (sem ponto)
+  - Caso contrário → cria ".opencode/" (com ponto)
+- opencode.json obrigatório criado em toda instalação
+- TDD documentado: specs/tdd-installer-directory-structure.md
+
+---
+
 ## [1.3.2] - 2026-04-17
 
 ### Fixed

@@ -100,9 +100,26 @@ BACKUP_DIR_NAME=".opencode.bak"
 # Embedded version (updated at generation time)
 EMBEDDED_VERSION="${CURRENT_VERSION}"
 
-# Target directory
-TARGET_DIR="\${PWD}/.opencode"
+# Target directory base
+TARGET_BASE="\${PWD:-.}" || true
+: "\${TARGET_BASE:=.}" || true
 TEMP_DIR=""
+
+# Resolve HOME if not set
+HOME_DIR="\${HOME:-}" || true
+
+# Determine install directory based on runtime context (global vs local)
+# If executing from ~/.config → global → use "opencode" (no dot)
+# Otherwise → local → use ".opencode" (with dot)
+if [[ -n "\$HOME_DIR" && ("\$TARGET_BASE" == "\$HOME_DIR/.config" || "\$TARGET_BASE" == "\${HOME_DIR}/.config") ]]; then
+    INSTALL_DIR="\${TARGET_BASE}/opencode"
+else
+    INSTALL_DIR="\${TARGET_BASE}/.opencode"
+fi
+
+# Legacy variable (kept for backward compatibility)
+TARGET_DIR="\${INSTALL_DIR}"
+TARGET_DIR="\${INSTALL_DIR}"
 
 # Mode flags
 MODE_INSTALL=true
@@ -376,19 +393,36 @@ download_folder_git() {
 
 # Download version file
 download_version_file() {
-    local dest_path="\${TARGET_DIR}/\${VERSION_FILE}"
+    local dest_path="${TARGET_DIR}/${VERSION_FILE}"
     info "Downloading version file..."
-    if download_file "\${VERSION_FILE}" "\$dest_path"; then
+    if download_file "${VERSION_FILE}" "$dest_path"; then
         # Ensure the embedded version is written
-        echo "\${EMBEDDED_VERSION}" > "\$dest_path"
-        success "Version file written: \${EMBEDDED_VERSION}"
+        echo "${EMBEDDED_VERSION}" > "$dest_path"
+        success "Version file written: ${EMBEDDED_VERSION}"
         return 0
     else
         # Write embedded version as fallback
-        echo "\${EMBEDDED_VERSION}" > "\$dest_path"
-        success "Version file written (embedded): \${EMBEDDED_VERSION}"
+        echo "${EMBEDDED_VERSION}" > "$dest_path"
+        success "Version file written (embedded): ${EMBEDDED_VERSION}"
         return 0
     fi
+}
+
+# Create opencode.json (required for all installations)
+create_opencode_json() {
+    local config_path="\${INSTALL_DIR}/opencode.json"
+    info "Creating opencode.json..."
+    
+    mkdir -p "$(dirname "$config_path")" || true
+    
+    cat > "$config_path" <<'OPENCODE_JSON'
+{
+  "$schema": "https://opencode.ai/config.json",
+  "version": "1.0"
+}
+OPENCODE_JSON
+    
+    success "opencode.json created"
 }
 
 # Backup existing .opencode directory
@@ -564,9 +598,9 @@ do_install() {
         fi
     fi
     
-    # Create target directory
-    mkdir -p "\$TARGET_DIR"
-    success "Created \${TARGET_DIR}"
+# Create install directory
+    mkdir -p "$INSTALL_DIR"
+    success "Created ${INSTALL_DIR}"
     echo ""
     
     # Download each folder
@@ -586,6 +620,9 @@ do_install() {
     
     # Download version file
     download_version_file
+    
+    # Create opencode.json (required)
+    create_opencode_json
     
     echo ""
     echo "========================="
