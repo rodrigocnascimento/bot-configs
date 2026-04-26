@@ -4,6 +4,15 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.3.2] - 2026-04-26
+
+### Changed
+- Reorganização da estrutura de diretórios: arquivos movidos de `.opencode/` para raiz
+- Regras em `rules/`, skills em `skills/`
+- Skill `backend-code-review/` preservada integralmente
+
+---
+
 ## [1.4.0] - 2026-04-18
 
 ### Added
