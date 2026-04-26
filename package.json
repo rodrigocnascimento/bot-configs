@@ -1,0 +1,22 @@
+{
+  "name": "ai-configs",
+  "version": "1.3.2",
+  "description": "AI agent configuration rules for the organization's coding workflow",
+  "main": "index.js",
+  "scripts": {
+    "opencode:compile": "./opencodecompile.sh",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "config",
+    "opencode",
+    "cursor"
+  ],
+  "author": "Organization",
+  "license": "MIT",
+  "dependencies": {
+    "@opencode-ai/plugin": "1.3.13"
+  }
+}
