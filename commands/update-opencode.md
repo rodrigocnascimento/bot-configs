@@ -1,21 +1,28 @@
 ---
-description: Check for updates and update OpenCode configuration files
+description: Check for updates and update OpenCode AGENT configuration files (NOT application code)
 mode: subagent
 tools:
   bash: true
 ---
 
-# OpenCode Self-Update
+# OpenCode Configuration Self-Update
 
-Check the current installed OpenCode configuration version against the latest available version, and update if a newer version is available.
+**IMPORTANT: This command is EXCLUSIVELY for updating OpenCode agent configuration files.**
+
+This command does NOT update application code, business logic, or any project-specific files. It ONLY updates OpenCode configuration artifacts such as:
+- AGENTS.md
+- Rules (*.md files in rules/)
+- Commands (*.md files in commands/)
+- Skills (*.md files in skills/)
+- Other OpenCode configuration files
 
 ## Workflow
 
 ### 1. Check current version
 
-Read the installed version from `.opencode/opencode.version` in the current project directory.
+Read the installed version from `opencode.version` or `.opencode/opencode.version` in the current project directory.
 
-If the file does not exist, report that OpenCode is not installed in this project.
+If the file does not exist, report that OpenCode configuration is not installed in this project.
 
 ### 2. Fetch latest version
 
@@ -56,12 +63,15 @@ curl -fsSL https://raw.githubusercontent.com/rodrigocnascimento/bot-configs/main
 
 ### 5. After update
 
-- Verify the new version by reading `.opencode/opencode.version`
+- Verify the new version by reading `opencode.version`
 - Inform the user of the updated version
 - Note: the AGENTS.md file distributed with OpenCode is pre-compiled and does not need a separate compile step in the target project
 
 ## Important
 
+- **NEVER use this for application code updates**
+- **NEVER update business logic or project-specific files**
+- Only update OpenCode configuration artifacts
 - Never update without explicit user confirmation
 - Always show the version comparison before asking to proceed
 - If the update fails, the backup at `.opencode.bak/` can be restored manually
