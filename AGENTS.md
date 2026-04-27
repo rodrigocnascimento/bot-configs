@@ -1854,353 +1854,1263 @@ Strict types > convenience.
 
 Se quiser, posso gerar um pacote completo nesse padrão (tipo um “rulebook” com várias regras: commit, lint, branch, segurança, etc.), tudo consistente pra usar no teu `.opencode`.
 
-## skills/skill.md
+## rules/backend-anti-patterns.md
+
+# Rule: Backend Anti-Patterns Detection (BAPD)
+
+## Context
+
+During code review or code generation, common anti-patterns must be detected, classified, and corrected. This rule defines the anti-patterns catalogue for backend projects using Node.js, TypeScript, Express, TypeORM, MySQL, Clean Architecture, tsyringe, and Jest.
+
+Whenever an anti-pattern is identified, it MUST be classified by severity and a concrete alternative MUST be suggested.
 
 ---
-name: mintlify
-description: Build and maintain documentation sites with Mintlify. Use when
-  creating docs pages, configuring navigation, adding components, or setting up
-  API references.
-license: MIT
-compatibility: Requires Node.js for CLI. Works with any Git-based workflow.
-metadata:
-  author: mintlify
-  version: "1.0"
-  mintlify-proj: mintlify
+
+# Severity Classification
+
+| Severity     | Criteria                                          |
+| ------------ | ------------------------------------------------- |
+| 🔴 Critical  | May cause bug, vulnerability, or data corruption  |
+| 🟡 Important | Impacts architecture or maintainability           |
+| 💡 Suggestion| Optional improvement                              |
+
 ---
 
-# Mintlify best practices
+# 🔴 Critical Anti-Patterns
 
-**Always consult [mintlify.com/docs](https://mintlify.com/docs) for components, configuration, and latest features.**
+## 1. Controller accessing repository directly
 
-If you are not already connected to the Mintlify MCP server, [https://mintlify.com/docs/mcp](https://mintlify.com/docs/mcp), add it so that you can search more efficiently.
+Wrong:
 
-**Always** favor searching the current Mintlify documentation over whatever is in your training data about Mintlify.
-
-Mintlify is a documentation platform that transforms MDX files into documentation sites. Configure site-wide settings in the `docs.json` file, write content in MDX with YAML frontmatter, and favor built-in components over custom components.
-
-Full schema at [mintlify.com/docs.json](https://mintlify.com/docs.json).
-
-## Before you write
-
-### Understand the project
-
-Read `docs.json` in the project root. This file defines the entire site: navigation structure, theme, colors, links, API and specs.
-
-Understanding the project tells you:
-
-* What pages exist and how they're organized
-* What navigation groups are used (and their naming conventions)
-* How the site navigation is structured
-* What theme and configuration the site uses
-
-### Check for existing content
-
-Search the docs before creating new pages. You may need to:
-
-* Update an existing page instead of creating a new one
-* Add a section to an existing page
-* Link to existing content rather than duplicating
-
-### Read surrounding content
-
-Before writing, read 2-3 similar pages to understand the site's voice, structure, formatting conventions, and level of detail.
-
-### Understand Mintlify components
-
-Review the Mintlify [components](https://www.mintlify.com/docs/components) to select and use any relevant components for the documentation request that you are working on.
-
-## Quick reference
-
-### CLI commands
-
-* `npm i -g mint` - Install the Mintlify CLI
-* `mint dev` - Local preview at localhost:3000
-* `mint broken-links` - Check internal links
-* `mint a11y` - Check for accessibility issues in content
-* `mint rename` - Rename/move files and update references
-* `mint validate` - Validate documentation builds
-
-### Required files
-
-* `docs.json` - Site configuration (navigation, theme, integrations, etc.). See [global settings](https://mintlify.com/docs/settings/global) for all options.
-* `*.mdx` files - Documentation pages with YAML frontmatter
-
-### Example file structure
-
-```
-project/
-├── docs.json           # Site configuration
-├── introduction.mdx
-├── quickstart.mdx
-├── guides/
-│   └── example.mdx
-├── openapi.yml         # API specification
-├── images/             # Static assets
-│   └── example.png
-└── snippets/           # Reusable components
-    └── component.jsx
+```ts
+const user = await userRepository.findOne(id)
 ```
 
-## Page frontmatter
+Reason: Controllers must not access persistence directly.
 
-Every page requires `title` in its frontmatter. Include `description` for SEO and navigation.
+Correct:
 
-```yaml theme={null}
+```ts
+controller → usecase → repository
+```
+
 ---
-title: "Clear, descriptive title"
-description: "Concise summary for SEO and navigation."
+
+## 2. Manually concatenated SQL
+
+Wrong:
+
+```ts
+await repository.query(
+  `SELECT * FROM users WHERE id = ${userId}`
+)
+```
+
+Risk: SQL Injection.
+
+Correct:
+
+```ts
+await repository.query(
+  "SELECT * FROM users WHERE id = ?",
+  [userId]
+)
+```
+
 ---
+
+## 3. Promise without await
+
+Wrong:
+
+```ts
+service.execute(data)
 ```
 
-Optional frontmatter fields:
+Problem: silent errors, execution outside expected flow.
 
-* `sidebarTitle`: Short title for sidebar navigation.
-* `icon`: Lucide or Font Awesome icon name, URL, or file path.
-* `tag`: Label next to the page title in the sidebar (for example, "NEW").
-* `mode`: Page layout mode (`default`, `wide`, `custom`).
-* `keywords`: Array of terms related to the page content for local search and SEO.
-* Any custom YAML fields for use with personalization or conditional content.
+Correct:
 
-## File conventions
-
-* Match existing naming patterns in the directory
-* If there are no existing files or inconsistent file naming patterns, use kebab-case: `getting-started.mdx`, `api-reference.mdx`
-* Use root-relative paths without file extensions for internal links: `/getting-started/quickstart`
-* Do not use relative paths (`../`) or absolute URLs for internal pages
-* When you create a new page, add it to `docs.json` navigation or it won't appear in the sidebar
-
-## Organize content
-
-When a user asks about anything related to site-wide configurations, start by understanding the [global settings](https://www.mintlify.com/docs/organize/settings). See if a setting in the `docs.json` file can be updated to achieve what the user wants.
-
-### Navigation
-
-The `navigation` property in `docs.json` controls site structure. Choose one primary pattern at the root level, then nest others within it.
-
-**Choose your primary pattern:**
-
-| Pattern       | When to use                                                                                    |
-| ------------- | ---------------------------------------------------------------------------------------------- |
-| **Groups**    | Default. Single audience, straightforward hierarchy                                            |
-| **Tabs**      | Distinct sections with different audiences (Guides vs API Reference) or content types          |
-| **Anchors**   | Want persistent section links at sidebar top. Good for separating docs from external resources |
-| **Dropdowns** | Multiple doc sections users switch between, but not distinct enough for tabs                   |
-| **Products**  | Multi-product company with separate documentation per product                                  |
-| **Versions**  | Maintaining docs for multiple API/product versions simultaneously                              |
-| **Languages** | Localized content                                                                              |
-
-**Within your primary pattern:**
-
-* **Groups** - Organize related pages. Can nest groups within groups, but keep hierarchy shallow
-* **Menus** - Add dropdown navigation within tabs for quick jumps to specific pages
-* **`expanded: false`** - Collapse nested groups by default. Use for reference sections users browse selectively
-* **`openapi`** - Auto-generate pages from OpenAPI spec. Add at group/tab level to inherit
-
-**Common combinations:**
-
-* Tabs containing groups (most common for docs with API reference)
-* Products containing tabs (multi-product SaaS)
-* Versions containing tabs (versioned API docs)
-* Anchors containing groups (simple docs with external resource links)
-
-### Links and paths
-
-* **Internal links:** Root-relative, no extension: `/getting-started/quickstart`
-* **Images:** Store in `/images`, reference as `/images/example.png`
-* **External links:** Use full URLs, they open in new tabs automatically
-
-## Customize docs sites
-
-**What to customize where:**
-
-* **Brand colors, fonts, logo** → `docs.json`. See [global settings](https://mintlify.com/docs/settings/global)
-* **Component styling, layout tweaks** → `custom.css` at project root
-* **Dark mode** → Enabled by default. Only disable with `"appearance": "light"` in `docs.json` if brand requires it
-
-Start with `docs.json`. Only add `custom.css` when you need styling that config doesn't support.
-
-## Write content
-
-### Components
-
-The [components overview](https://mintlify.com/docs/components) organizes all components by purpose: structure content, draw attention, show/hide content, document APIs, link to pages, and add visual context. Start there to find the right component.
-
-**Common decision points:**
-
-| Need                       | Use                     |
-| -------------------------- | ----------------------- |
-| Hide optional details      | `<Accordion>`           |
-| Long code examples         | `<Expandable>`          |
-| User chooses one option    | `<Tabs>`                |
-| Linked navigation cards    | `<Card>` in `<Columns>` |
-| Sequential instructions    | `<Steps>`               |
-| Code in multiple languages | `<CodeGroup>`           |
-| API parameters             | `<ParamField>`          |
-| API response fields        | `<ResponseField>`       |
-
-**Callouts by severity:**
-
-* `<Note>` - Supplementary info, safe to skip
-* `<Info>` - Helpful context such as permissions
-* `<Tip>` - Recommendations or best practices
-* `<Warning>` - Potentially destructive actions
-* `<Check>` - Success confirmation
-
-### Reusable content
-
-**When to use snippets:**
-
-* Exact content appears on more than one page
-* Complex components you want to maintain in one place
-* Shared content across teams/repos
-
-**When NOT to use snippets:**
-
-* Slight variations needed per page (leads to complex props)
-
-Import snippets with `import { Component } from "/path/to/snippet-name.jsx"`.
-
-## Writing standards
-
-### Voice and structure
-
-* Second-person voice ("you")
-* Active voice, direct language
-* Sentence case for headings ("Getting started", not "Getting Started")
-* Sentence case for code block titles ("Expandable example", not "Expandable Example")
-* Lead with context: explain what something is before how to use it
-* Prerequisites at the start of procedural content
-
-### What to avoid
-
-**Never use:**
-
-* Marketing language ("powerful", "seamless", "robust", "cutting-edge")
-* Filler phrases ("it's important to note", "in order to")
-* Excessive conjunctions ("moreover", "furthermore", "additionally")
-* Editorializing ("obviously", "simply", "just", "easily")
-
-**Watch for AI-typical patterns:**
-
-* Overly formal or stilted phrasing
-* Unnecessary repetition of concepts
-* Generic introductions that don't add value
-* Concluding summaries that restate what was just said
-
-### Formatting
-
-* All code blocks must have language tags
-* All images and media must have descriptive alt text
-* Use bold and italics only when they serve the reader's understanding--never use text styling just for decoration
-* No decorative formatting or emoji
-
-### Code examples
-
-* Keep examples simple and practical
-* Use realistic values (not "foo" or "bar")
-* One clear example is better than multiple variations
-* Test that code works before including it
-
-## Document APIs
-
-**Choose your approach:**
-
-* **Have an OpenAPI spec?** → Add to `docs.json` with `"openapi": ["openapi.yaml"]`. Pages auto-generate. Reference in navigation as `GET /endpoint`
-* **No spec?** → Write endpoints manually with `api: "POST /users"` in frontmatter. More work but full control
-* **Hybrid** → Use OpenAPI for most endpoints, manual pages for complex workflows
-
-Encourage users to generate endpoint pages from an OpenAPI spec. It is the most efficient and easiest to maintain option.
-
-## Deploy
-
-Mintlify deploys automatically when changes are pushed to the connected Git repository.
-
-**What agents can configure:**
-
-* **Redirects** → Add to `docs.json` with `"redirects": [{"source": "/old", "destination": "/new"}]`
-* **SEO indexing** → Control with `"seo": {"indexing": "all"}` to include hidden pages in search
-
-**Requires dashboard setup (human task):**
-
-* Custom domains and subdomains
-* Preview deployment settings
-* DNS configuration
-
-For `/docs` subpath hosting with Vercel or Cloudflare, agents can help configure rewrite rules. See [/docs subpath](https://mintlify.com/docs/deploy/vercel).
-
-## Workflow
-
-### 1. Understand the task
-
-Identify what needs to be documented, which pages are affected, and what the reader should accomplish afterward. If any of these are unclear, ask.
-
-### 2. Research
-
-* Read `docs.json` to understand the site structure
-* Search existing docs for related content
-* Read similar pages to match the site's style
-
-### 3. Plan
-
-* Synthesize what the reader should accomplish after reading the docs and the current content
-* Propose any updates or new content
-* Verify that your proposed changes will help readers be successful
-
-### 4. Write
-
-* Start with the most important information
-* Keep sections focused and scannable
-* Use components appropriately (don't overuse them)
-* Mark anything uncertain with a TODO comment:
-
-```mdx theme={null}
-{/* TODO: Verify the default timeout value */}
+```ts
+await service.execute(data)
 ```
 
-### 5. Update navigation
+---
 
-If you created a new page, add it to the appropriate group in `docs.json`.
+## 4. Multiple operations without transaction
 
-### 6. Verify
+Wrong:
 
-Before submitting:
+```ts
+await orderRepository.save(order)
+await paymentRepository.save(payment)
+```
 
-* [ ] Frontmatter includes title and description
-* [ ] All code blocks have language tags
-* [ ] Internal links use root-relative paths without file extensions
-* [ ] New pages are added to `docs.json` navigation
-* [ ] Content matches the style of surrounding pages
-* [ ] No marketing language or filler phrases
-* [ ] TODOs are clearly marked for anything uncertain
-* [ ] Run `mint broken-links` to check links
-* [ ] Run `mint validate` to find any errors
+Risk: inconsistent state.
 
-## Edge cases
+Correct:
 
-### Migrations
+```ts
+await dataSource.transaction(async manager => {
+  await manager.save(order)
+  await manager.save(payment)
+})
+```
 
-If a user asks about migrating to Mintlify, ask if they are using ReadMe or Docusaurus. If they are, use the [@mintlify/scraping](https://www.npmjs.com/package/@mintlify/scraping) CLI to migrate content. If they are using a different platform to host their documentation, help them manually convert their content to MDX pages using Mintlify components.
+---
 
-### Hidden pages
+## 5. Domain depending on infrastructure
 
-Any page that is not included in the `docs.json` navigation is hidden. Use hidden pages for content that should be accessible by URL or indexed for the assistant or search, but not discoverable through the sidebar navigation.
+Wrong:
 
-### Exclude pages
+```ts
+domain → repository
+domain → orm
+```
 
-The `.mintignore` file is used to exclude files from a documentation repository from being processed.
+Correct:
 
-## Common gotchas
+```ts
+domain → interfaces
+infra → implementation
+```
 
-1. **Component imports** - JSX components need explicit import, MDX components don't
-2. **Frontmatter required** - Every MDX file needs `title` at minimum
-3. **Code block language** - Always specify language identifier
-4. **Never use `mint.json`** - `mint.json` is deprecated. Only ever use `docs.json`
+---
 
-## Resources
+# 🟡 Important Anti-Patterns
 
-* [Documentation](https://mintlify.com/docs)
-* [Configuration schema](https://mintlify.com/docs.json)
-* [Feature requests](https://github.com/orgs/mintlify/discussions/categories/feature-requests)
-* [Bugs and feedback](https://github.com/orgs/mintlify/discussions/categories/bugs-feedback)
+## 6. In-memory filter after full load
+
+Wrong:
+
+```ts
+const users = await repository.find()
+return users.filter(u => u.active)
+```
+
+Problem: loads all records into memory.
+
+Correct:
+
+```ts
+repository.find({
+  where: { active: true }
+})
+```
+
+---
+
+## 7. N+1 Queries
+
+Wrong:
+
+```ts
+for (const order of orders) {
+  await repository.findItems(order.id)
+}
+```
+
+Correct:
+
+```ts
+leftJoinAndSelect("order.items", "items")
+```
+
+---
+
+## 8. Sequential async loop
+
+Wrong:
+
+```ts
+for (const item of items) {
+  await process(item)
+}
+```
+
+Correct:
+
+```ts
+await Promise.all(items.map(process))
+```
+
+---
+
+## 9. Excessive use of `any`
+
+Wrong:
+
+```ts
+function create(data: any)
+```
+
+Problem: loss of type safety.
+
+Correct:
+
+```ts
+function create(data: CreateUserDTO)
+```
+
+---
+
+## 10. Functions too large
+
+Heuristic:
+
+- more than 50 lines
+- multiple responsibilities
+
+Suggestion: split into smaller functions or extract use case.
+
+---
+
+# 💡 Suggestion Anti-Patterns
+
+## 11. Unstructured logs
+
+Wrong:
+
+```ts
+console.log("user created", user)
+```
+
+Correct:
+
+```ts
+logger.info("user_created", { userId: user.id })
+```
+
+---
+
+## 12. Missing DTO
+
+Controllers must not work directly with entities.
+
+Wrong:
+
+```ts
+createUser(user: User)
+```
+
+Correct:
+
+```ts
+createUser(dto: CreateUserDTO)
+```
+
+---
+
+# Detection Heuristics
+
+During review or code generation, automatically check:
+
+### Architecture
+
+- controller importing repository
+- usecase importing express
+- domain importing orm
+
+### Database
+
+- `.find()` followed by `.filter()`
+- `.save()` inside loops
+- SQL query with template string
+
+### Async
+
+- async function without await
+- sequential loop with await
+
+### Typing
+
+- use of `any`
+- implicit return
+
+---
+
+# Hard Execution Gate
+
+When detecting an anti-pattern, the system MUST:
+
+1. Classify severity
+2. Generate comment using templates from `skills/backend-code-review/references/comment-templates.md`
+3. Suggest concrete correction
+4. Count in review score
+
+The system MUST NOT:
+
+- Ignore Critical anti-patterns
+- Suggest `any` as a workaround
+- Approve code with SQL injection or mass assignment without flagging
+
+---
+
+## Security Principle
+
+Anti-patterns are symptoms of deeper architectural or safety issues.
+
+Detection > silence.
+Correction > tolerance.
+
+## rules/backend-security-review.md
+
+# Rule: Backend Security Review (BSR)
+
+## Context
+
+During code review or code generation, security vulnerabilities must be identified and blocked before reaching production. This rule follows OWASP-inspired practices for backend projects using Node.js, TypeScript, Express, TypeORM, and MySQL.
+
+Security is the highest priority dimension. Any finding classified as 🔴 Critical MUST be flagged and corrected before the code is considered acceptable.
+
+---
+
+# Vulnerability Categories
+
+## 1. Injection (SQL / Command)
+
+Detect any dynamic query construction.
+
+❌ Wrong:
+
+```ts
+await repository.query(
+  `SELECT * FROM users WHERE email = '${email}'`
+)
+```
+
+Risk: SQL Injection.
+
+✅ Correct:
+
+```ts
+await repository.query(
+  "SELECT * FROM users WHERE email = ?",
+  [email]
+)
+```
+
+---
+
+## 2. Mass Assignment
+
+When request objects are persisted directly.
+
+❌ Wrong:
+
+```ts
+await userRepository.save(req.body)
+```
+
+Problem: An attacker can send extra fields:
+
+```json
+{
+  "email": "user@mail.com",
+  "isAdmin": true
+}
+```
+
+✅ Correct:
+
+Use explicit DTO:
+
+```ts
+const dto: CreateUserDTO = {
+  email: req.body.email,
+  password: req.body.password
+}
+```
+
+---
+
+## 3. Missing Input Validation
+
+Verify absence of validation on:
+
+- body
+- query
+- params
+
+❌ Wrong:
+
+```ts
+app.post("/users", async (req, res) => {
+  await service.create(req.body)
+})
+```
+
+✅ Correct:
+
+Use schema validation:
+
+- Zod
+- Joi
+- class-validator
+
+---
+
+## 4. Sensitive Data Exposure
+
+Detect logs containing:
+
+- passwords
+- tokens
+- authentication headers
+
+❌ Wrong:
+
+```ts
+logger.info("login attempt", req.body)
+```
+
+✅ Correct:
+
+```ts
+logger.info("login attempt", { email: req.body.email })
+```
+
+---
+
+## 5. Hardcoded Secrets
+
+Detect hardcoded values:
+
+- API keys
+- tokens
+- credentials
+
+❌ Wrong:
+
+```ts
+const apiKey = "sk_live_123"
+```
+
+✅ Correct:
+
+```ts
+process.env.API_KEY
+```
+
+---
+
+## 6. Broken Authentication
+
+Verify that sensitive endpoints:
+
+- require authentication
+- verify authorization
+
+Common problems:
+
+- public administrative endpoints
+- missing auth middleware
+- authentication only on frontend
+
+---
+
+## 7. SSRF (Server-Side Request Forgery)
+
+Detect HTTP calls with user-controlled URLs.
+
+❌ Wrong:
+
+```ts
+await axios.get(req.query.url)
+```
+
+Risk: Server can access internal resources.
+
+✅ Correct:
+
+Validate domain whitelist.
+
+---
+
+## 8. Missing Rate Limiting
+
+Critical endpoints must have abuse protection.
+
+Examples:
+
+- login
+- password reset
+- account creation
+
+Common solutions:
+
+- express-rate-limit
+- gateway rate limit
+
+---
+
+## 9. Insecure File Upload
+
+Verify:
+
+- file type
+- maximum size
+- secure directory
+
+Common problems:
+
+- executable uploads
+- path traversal
+
+---
+
+## 10. Missing Data Sanitization
+
+Especially in fields that may be rendered later (XSS prevention).
+
+---
+
+# Detection Protocol
+
+Whenever reviewing or generating code, the system MUST:
+
+### 1. Scan for Vulnerability Patterns
+
+Check for:
+
+- Template strings in SQL queries
+- Direct `req.body` persistence
+- Missing input validation
+- Hardcoded credentials
+- User-controlled URLs in HTTP calls
+- Missing auth middleware on sensitive routes
+
+### 2. Classify Findings
+
+| Severity   | Criteria                                           |
+| ---------- | -------------------------------------------------- |
+| 🔴 Critical| Can cause vulnerability or data breach             |
+| 🟡 Important| Impacts security posture                          |
+| 💡 Suggestion| Security hardening recommendation               |
+
+### 3. Generate Corrective Comments
+
+Use templates from `skills/backend-code-review/references/comment-templates.md`.
+
+---
+
+# Hard Execution Gate
+
+The system MUST NOT:
+
+- Ignore 🔴 Critical security findings
+- Approve code with SQL injection or mass assignment without flagging
+- Suggest skipping validation as a workaround
+- Leave hardcoded credentials unflagged
+
+The system MUST:
+
+- Flag every security vulnerability found
+- Suggest a concrete correction
+- Prioritize security over all other review dimensions
+
+---
+
+## Security Principle
+
+Security findings are never optional.
+
+Injection > convenience.
+Validation > trust.
+Explicit > implicit.
+
+## rules/staff-engineer-review.md
+
+# Rule: Staff Engineer Review (SER)
+
+## Context
+
+During code review, the analysis must go beyond code quality. A Staff Engineer-level review evaluates design, architecture, scalability, and operational risks. This rule ensures reviews cover the dimensions that determine long-term system health.
+
+This rule operates alongside `backend-anti-patterns.md` and `backend-security-review.md`. When rules conflict, the strictest restriction wins.
+
+---
+
+# Review Dimensions
+
+During any code review, the system MUST evaluate the following dimensions in priority order:
+
+1. 🏗️ Architecture
+2. 🎯 Domain Design
+3. 📈 Scalability
+4. 🛡️ Reliability
+5. 🔍 Observability
+6. 🧪 Testability
+
+---
+
+## 1️⃣ Architecture
+
+Verify the code respects system layer boundaries.
+
+Expected architecture:
+
+```mermaid
+graph LR
+  A[Controller] --> B[UseCase/Service]
+  B --> C[Repository]
+  C --> D[(Database)]
+```
+
+Architectural problems include:
+
+- controller accessing repository
+- domain depending on ORM
+- services with multiple responsibilities
+- circular dependencies
+- business logic in controllers
+
+Fundamental question:
+
+> Does this implementation maintain clear separation between layers?
+
+---
+
+## 2️⃣ Domain Design
+
+Evaluate if business rules are correctly modeled.
+
+Check for:
+
+- business rules scattered across layers
+- duplicated logic
+- anemic entities
+- unprotected invariants
+
+Fundamental question:
+
+> Is the business rule in the correct place?
+
+---
+
+## 3️⃣ Scalability
+
+Evaluate the implementation's impact in production.
+
+Check for:
+
+- N+1 queries
+- queries without index
+- queries loading unnecessary data
+- heavy synchronous processing
+- sequential async loops
+
+Fundamental question:
+
+> Will this code work well with 10x more data?
+
+---
+
+## 4️⃣ Reliability
+
+Evaluate system resilience.
+
+Check for:
+
+- missing error handling
+- retry on external calls
+- missing timeouts
+- data inconsistency
+- absence of transactions
+
+Fundamental question:
+
+> What happens if something fails here?
+
+---
+
+## 5️⃣ Observability
+
+Evaluate if the system is operable in production.
+
+Check for:
+
+- structured logs
+- missing logs in critical flows
+- generic error messages
+- difficulty of diagnosis
+
+Fundamental question:
+
+> Will we be able to debug this in production?
+
+---
+
+## 6️⃣ Testability
+
+Verify how easy it is to test the code.
+
+Common problems:
+
+- concrete dependencies
+- logic in controllers
+- missing interfaces
+- lack of mocks
+
+Fundamental question:
+
+> Can we test this module in isolation?
+
+---
+
+# Finding Classification
+
+During review, classify findings in three categories:
+
+| Severity     | Criteria                               |
+| ------------ | -------------------------------------- |
+| 🔴 Critical  | Risk of bug, failure, or vulnerability |
+| 🟡 Important | Impact on architecture or maintenance  |
+| 💡 Suggestion| Structural improvement                 |
+
+---
+
+# Advanced Heuristics
+
+Always look for:
+
+### Excessive coupling
+
+Example: service depending on multiple repositories
+
+### Low cohesion
+
+Example: function executing multiple responsibilities
+
+### Boundary violation
+
+Example: infrastructure accessing domain rules
+
+### Unnecessary complexity
+
+Example: abstractions without need
+
+---
+
+# Guiding Questions
+
+During review, the system must mentally evaluate:
+
+1. Is this implementation the **simplest possible**?
+2. Will this code be **easy to maintain a year from now**?
+3. Are there **unhandled edge cases**?
+4. Does this code **scale with more data or traffic**?
+5. Does the architecture remain **coherent** after this change?
+
+---
+
+# Hard Execution Gate
+
+The system MUST NOT:
+
+- Ignore architectural violations (controller → repository)
+- Approve code without error handling for async operations
+- Ignore N+1 queries or in-memory filters
+- Skip observability concerns in critical flows
+
+The system MUST:
+
+- Flag every architectural violation
+- Generate an architecture-level comment when coupling is detected
+- Suggest moving logic to the correct layer
+
+---
+
+# Integration with Other Rules
+
+This rule operates together with:
+
+- `rules/backend-anti-patterns.md` — specific anti-pattern detection
+- `rules/backend-security-review.md` — security vulnerability detection
+
+Use comment templates from:
+
+- `skills/backend-code-review/references/comment-templates.md`
+
+---
+
+## Security Principle
+
+Architecture is not optional.
+
+Correct layer > convenience.
+Explicit boundary > implicit coupling.
+Testable > clever.
+
+## skills/backend-code-review/references/comment-templates.md
+
+# Inline Comment Templates — Backend Code Review
+
+Use these templates when formatting review comments.
+
+## Structure of an inline comment
+
+Every comment must have:
+
+1. **Severity emoji**
+2. **Category**
+3. **Objective description**
+4. **Concrete suggestion**
+
+> Always address the developer as **"Developer"**.
+
+---
+
+# 🔴 Bug / Incorrect Logic
+
+````markdown
+🔴 **Bug**: [Short title]
+
+Developer, the implemented logic does not correctly cover the expected scenario.
+
+[Describe current behavior and impact.]
+
+**Suggestion:**
+```ts
+// corrected code
+```
+````
+
+---
+
+# 🔴 Security
+
+```markdown
+🔴 **Security**: [Title]
+
+Developer, this implementation may introduce a vulnerability.
+
+[Describe attack vector: SQL injection, data exposure, auth bypass.]
+
+Impact: [unauthorized access, data leak, etc.]
+
+**Suggestion:**
+```ts
+// secure implementation
+```
+```
+
+---
+
+# 🔴 Data Consistency
+
+````markdown
+🔴 **Data Consistency**: Operations without transaction
+
+Developer, this flow executes multiple database operations without a transaction.
+
+If one fails, the system may be left in an inconsistent state.
+
+**Suggestion:**
+```ts
+await dataSource.transaction(async manager => {
+  await manager.save(entity1)
+  await manager.save(entity2)
+})
+```
+````
+
+---
+
+# 🟡 Architecture — Clean Architecture
+
+```markdown
+🟡 **Architecture**: Layer violation
+
+Developer, this logic is being executed in the wrong layer.
+
+Controllers should only orchestrate HTTP requests and delegate business rules to use cases.
+
+**Suggestion:** move the logic to `usecases/`.
+```
+
+---
+
+# 🟡 Persistence — TypeORM
+
+```markdown
+🟡 **Persistence**: In-memory filter
+
+Developer, this filter is being applied after loading data from the database.
+
+This can cause high memory consumption and performance degradation.
+
+**Suggestion:** move the filter to the SQL query or QueryBuilder.
+```
+
+---
+
+# 🟡 Error Handling
+
+````markdown
+🟡 **Error Handling**: Missing explicit treatment
+
+Developer, this async call may fail and has no error handling.
+
+**Suggestion:**
+```ts
+try {
+  await service.execute(data)
+} catch (error) {
+  logger.error(error)
+  throw new AppError("Failed to process request")
+}
+```
+````
+
+---
+
+# 🟡 Missing Test
+
+```markdown
+🟡 **Missing Test**: [Use case name]
+
+Developer, this module contains relevant business logic and has no unit tests.
+
+Suggestion: add tests covering:
+
+- happy path
+- error handling
+- main business rules
+```
+
+---
+
+# 🟡 Performance
+
+```markdown
+🟡 **Performance**: N+1 Query
+
+Developer, this implementation may generate multiple queries when accessing relations.
+
+Impact: performance degradation with large data volumes.
+
+**Suggestion:** use `leftJoinAndSelect` or controlled eager loading.
+```
+
+---
+
+# 💡 Suggestion / Improvement
+
+````markdown
+💡 **Suggestion**: [Title]
+
+Developer, this implementation can be simplified to improve readability and maintenance.
+
+**Alternative:**
+```ts
+// suggested code
+```
+````
+
+---
+
+# Review Summary Template
+
+```markdown
+## Code Review — Summary
+
+### Findings
+
+- 🔴 Critical: N
+- 🟡 Important: N
+- 💡 Suggestions: N
+
+### Top Issues
+
+1. [Most critical finding]
+2. [Second most critical]
+3. [Third most critical]
+
+### Recommended Actions
+
+- [Action for most critical finding]
+- [Action for second finding]
+- [Action for third finding]
+```
+
+---
+
+# Severity Guide
+
+| Emoji | Level      | Action          |
+| ----- | ---------- | --------------- |
+| 🔴    | Critical   | Block merge     |
+| 🟡    | Important  | Fix in this MR   |
+| 💡    | Suggestion | Optional        |
+
+## skills/backend-code-review/references/review-rules.md
+
+# Review Rules — Backend
+
+Target projects:
+
+- Node.js
+- TypeScript
+- Express
+- TypeORM
+- MySQL
+- Clean Architecture
+- tsyringe (DI)
+- Jest
+
+---
+
+# Expected Architecture
+
+Dependency flow:
+
+```mermaid
+graph LR
+  A[Controller] --> B[UseCase/Service]
+  B --> C[Repository]
+  C --> D[(Database)]
+```
+
+Rules:
+
+- Controllers must not access database directly
+- Use cases must not know about Express
+- Repositories must not contain business logic
+
+---
+
+# 🔴 Critical Problems
+
+## Security
+
+- Manually concatenated SQL
+- Sensitive data in logs
+- Missing input validation
+- Bypassable authentication
+
+---
+
+## Data Consistency
+
+- Multiple operations without transaction
+- Race conditions
+
+---
+
+## Bugs
+
+- Promise without await
+- Missing error handling
+- Incorrect business rules
+
+---
+
+## Architecture
+
+- Controller calling repository
+- Domain importing infrastructure
+- Circular dependency
+
+---
+
+# 🟡 Important Problems
+
+## Performance
+
+- N+1 queries
+- In-memory filters
+- Missing pagination
+
+---
+
+## Code
+
+- Large functions
+- Duplicated logic
+- Missing DTO
+
+---
+
+## Tests
+
+- Use case without test
+- Tests depending on real database
+- Missing mocks
+
+---
+
+# 🟢 Improvements
+
+- Structured logs
+- Error standardization (`AppError`)
+- Consistent naming
+
+## skills/backend-code-review/SKILL.md
+
+---
+
+name: backend-code-review
+description: Realiza code review de código backend Node.js/TypeScript aplicando regras de arquitetura Clean Architecture, segurança, persistência TypeORM, qualidade de código e cobertura de testes.
+
+---
+
+# Backend Code Review
+
+Review guide for backend projects using:
+
+- Node.js
+- TypeScript
+- Express
+- TypeORM
+- MySQL
+- Clean Architecture
+- tsyringe
+- Jest
+
+Use templates in `references/comment-templates.md` to format comments.
+
+---
+
+# Workflow
+
+Follow the steps **in order**.
+
+---
+
+# Step 1 — Collect code for review
+
+The user must provide the code to review. This can be:
+
+- A diff (git diff, PR diff)
+- Specific files
+- A code snippet
+- A branch name (the agent will read the diff)
+
+If the user does not provide code, ask:
+
+> "Which code would you like me to review? You can provide a diff, file paths, a branch name, or paste a snippet."
+
+---
+
+# Step 2 — Apply review rules
+
+Apply the rules defined in:
+
+```
+references/review-rules.md
+```
+
+Also apply rules from:
+
+- `rules/backend-anti-patterns.md` — anti-pattern detection
+- `rules/backend-security-review.md` — security vulnerability detection
+- `rules/staff-engineer-review.md` — Staff Engineer-level review dimensions
+
+Prioritize:
+
+## 🔴 Critical
+
+- security
+- data consistency
+- bugs
+
+## 🟡 Important
+
+- architecture
+- performance
+- tests
+
+## 🟢 Improvements
+
+- patterns
+- naming
+- organization
+
+---
+
+# Step 3 — Analyze critical dimensions
+
+For each finding, evaluate across all review dimensions:
+
+1. **Architecture** — layer violations, coupling, boundary breaches
+2. **Domain Design** — misplaced business logic, anemic entities
+3. **Scalability** — N+1, in-memory filters, unbounded queries
+4. **Reliability** — missing error handling, missing transactions
+5. **Observability** — missing logs, generic errors
+6. **Testability** — untestable code, missing mocks
+
+---
+
+# Step 4 — Generate structured preview
+
+Generate a preview using templates from `references/comment-templates.md`:
+
+```
+## Review Preview
+
+### [FILE: src/controllers/user-controller.ts]
+
+Line 32 | 🔴 Bug
+
+Problem description.
+
+Suggestion.
+
+---
+
+### [FILE: src/usecases/create-user.ts]
+
+Line 14 | 🟡 Architecture
+
+Description.
+
+---
+
+## Summary
+
+Critical: N
+Important: N
+Suggestions: N
+```
+
+---
+
+# Step 5 — Issue summary
+
+At the end, generate a structured summary:
+
+```
+## Code Review — Summary
+
+### Findings
+
+- 🔴 Critical: N
+- 🟡 Important: N
+- 💡 Suggestions: N
+
+### Top Issues
+
+1. [Most critical finding]
+2. [Second most critical]
+3. [Third most critical]
+
+### Recommended Actions
+
+- [Action for most critical finding]
+- [Action for second finding]
+- [Action for third finding]
+```
+
+---
+
+# Important Guidelines
+
+- Always read the full code/diff before commenting
+- Never comment without understanding the context
+- Classify every finding by severity
+- Provide concrete suggestions, not just criticism
+- Distinguish between "must fix" (🔴) and "nice to have" (💡)
+- If no critical issues are found, state that clearly
+- Focus on the code — do not speculate about Jira tickets or external requirements
 <!-- END OPENCODE AUTO -->
