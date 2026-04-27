@@ -1,6 +1,6 @@
 {
   "name": "ai-configs",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "AI agent configuration rules for the organization's coding workflow",
   "main": "index.js",
   "scripts": {

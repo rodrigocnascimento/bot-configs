@@ -4,6 +4,13 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [1.3.3] - 2026-04-27
+
+### Fixed
+- Removido código órfão em `dist/install-opencode.sh` que causava erro "local: can only be used in a function"
+
+---
+
 ## [1.3.2] - 2026-04-26
 
 ### Changed

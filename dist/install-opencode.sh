@@ -277,38 +277,6 @@ download_folder() {
     
     return $fail_count
 }
-    
-    # Parse JSON and download files
-    local files
-    files=$(echo "$contents" | grep '"path"' | cut -d'"' -f4)
-    
-    local success_count=0
-    local fail_count=0
-    
-    while IFS= read -r file_path; do
-        [[ -z "$file_path" ]] && continue
-        
-        # Skip if it's the folder itself
-        [[ "$file_path" == "$folder" ]] && continue
-        
-        local dest_path="${TARGET_DIR}/${file_path}"
-        
-        if download_file "$file_path" "$dest_path"; then
-            ((success_count++))
-        else
-            ((fail_count++))
-            warning "Failed to download: ${file_path}"
-        fi
-    done <<< "$files"
-    
-    if [[ $fail_count -eq 0 ]]; then
-        success "Downloaded ${success_count} files from ${folder}"
-    else
-        warning "Downloaded ${success_count} files, ${fail_count} failed from ${folder}"
-    fi
-    
-    return $fail_count
-}
 
 # Alternative: Download using git archive
 download_folder_git() {
