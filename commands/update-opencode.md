@@ -20,9 +20,13 @@ This command does NOT update application code, business logic, or any project-sp
 
 ### 1. Check current version
 
-Read the installed version from `opencode.version` or `.opencode/opencode.version` in the current project directory.
+**IMPORTANT:** Search in both locations:
+- Global: `~/.config/opencode/opencode.version`
+- Local (project): `.opencode/opencode.version`
 
-If the file does not exist, report that OpenCode configuration is not installed in this project.
+Read the installed version from the first location found in this order.
+
+If neither file exists, report that OpenCode configuration is not installed in this project (checked both global and local).
 
 ### 2. Fetch latest version
 
@@ -63,7 +67,7 @@ curl -fsSL https://raw.githubusercontent.com/rodrigocnascimento/bot-configs/main
 
 ### 5. After update
 
-- Verify the new version by reading `opencode.version`
+- Verify the new version by reading `~/.config/opencode/opencode.version` or `.opencode/opencode.version`
 - Inform the user of the updated version
 - Note: the AGENTS.md file distributed with OpenCode is pre-compiled and does not need a separate compile step in the target project
 
