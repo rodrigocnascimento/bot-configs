@@ -1,0 +1,5 @@
+title: AI Configs
+description: Repositório de configurações de agentes de IA para padronização e melhoria do fluxo de desenvolvimento.
+remote_theme: pages-themes/leap-day@v0.2.0
+plugins:
+- jekyll-remote-theme
