@@ -212,7 +212,7 @@ Closes feature-123
 ## 8. Code Review
 
 Revisores verificam:
-- [Funcionalidade](../cursor/regras-de-review.md)
+- [Funcionalidade](../opencode/regras-operacionais.md)
 - [Segurança](../regras/segurança.md)
 - [Arquitetura](../regras/arquitetura.md)
 - [Code Style](../regras/code-style.md)
@@ -221,13 +221,10 @@ Revisores verificam:
 
 ```mermaid
 sequenceDiagram
-    Dev->>Cursor: /backend-code-review
-    Cursor->>GitLab: Ler diff
-    Cursor->>Jira: Buscar requisitos
-    Cursor->>Cursor: Analisar código
-    Cursor->>Dev: Preview comentários
-    Dev->>Cursor: Aprovar/Editar
-    Cursor->>GitLab: Postar comentários
+    Dev->>OpenCode: /code-review
+    OpenCode->>OpenCode: Ler e analisar a diff
+    OpenCode->>Dev: Preview de comentários
+    Dev->>OpenCode: Revisar ou aprovar o feedback
 ```
 
 ---

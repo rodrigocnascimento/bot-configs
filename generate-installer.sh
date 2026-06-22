@@ -187,7 +187,7 @@ parse_args() {
 # Check dependencies
 check_deps() {
     local deps=("curl" "jq")
-    for dep in "${deps[@]}"; do
+    for dep in "\${deps[@]}"; do
         if ! command -v "\$dep" &> /dev/null; then
             error "\$dep is required but not installed"
             exit 1
@@ -333,38 +333,6 @@ download_folder() {
     
     return \$fail_count
 }
-    
-    # Parse JSON and download files
-    local files
-    files=\$(echo "\$contents" | grep '"path"' | cut -d'"' -f4)
-    
-    local success_count=0
-    local fail_count=0
-    
-    while IFS= read -r file_path; do
-        [[ -z "\$file_path" ]] && continue
-        
-        # Skip if it's the folder itself
-        [[ "\$file_path" == "\$folder" ]] && continue
-        
-        local dest_path="\${TARGET_DIR}/\${file_path}"
-        
-        if download_file "\$file_path" "\$dest_path"; then
-            ((success_count++))
-        else
-            ((fail_count++))
-            warning "Failed to download: \${file_path}"
-        fi
-    done <<< "\$files"
-    
-    if [[ \$fail_count -eq 0 ]]; then
-        success "Downloaded \${success_count} files from \${folder}"
-    else
-        warning "Downloaded \${success_count} files, \${fail_count} failed from \${folder}"
-    fi
-    
-    return \$fail_count
-}
 
 # Alternative: Download using git archive
 download_folder_git() {
@@ -393,17 +361,17 @@ download_folder_git() {
 
 # Download version file
 download_version_file() {
-    local dest_path="${TARGET_DIR}/${VERSION_FILE}"
+    local dest_path="\${TARGET_DIR}/\${VERSION_FILE}"
     info "Downloading version file..."
-    if download_file "${VERSION_FILE}" "$dest_path"; then
+    if download_file "\${VERSION_FILE}" "\$dest_path"; then
         # Ensure the embedded version is written
-        echo "${EMBEDDED_VERSION}" > "$dest_path"
-        success "Version file written: ${EMBEDDED_VERSION}"
+        echo "\${EMBEDDED_VERSION}" > "\$dest_path"
+        success "Version file written: \${EMBEDDED_VERSION}"
         return 0
     else
         # Write embedded version as fallback
-        echo "${EMBEDDED_VERSION}" > "$dest_path"
-        success "Version file written (embedded): ${EMBEDDED_VERSION}"
+        echo "\${EMBEDDED_VERSION}" > "\$dest_path"
+        success "Version file written (embedded): \${EMBEDDED_VERSION}"
         return 0
     fi
 }
@@ -413,11 +381,11 @@ create_opencode_json() {
     local config_path="\${INSTALL_DIR}/opencode.json"
     info "Creating opencode.json..."
     
-    mkdir -p "$(dirname "$config_path")" || true
+    mkdir -p "\$(dirname "\$config_path")" || true
     
-    cat > "$config_path" <<'OPENCODE_JSON'
+    cat > "\$config_path" <<'OPENCODE_JSON'
 {
-  "$schema": "https://opencode.ai/config.json",
+  "\$schema": "https://opencode.ai/config.json",
   "version": "1.0"
 }
 OPENCODE_JSON
@@ -599,8 +567,8 @@ do_install() {
     fi
     
 # Create install directory
-    mkdir -p "$INSTALL_DIR"
-    success "Created ${INSTALL_DIR}"
+    mkdir -p "\$INSTALL_DIR"
+    success "Created \${INSTALL_DIR}"
     echo ""
     
     # Download each folder

@@ -1,6 +1,6 @@
 {
   "name": "ai-configs",
-  "version": "1.3.3",
+  "version": "2.0.0",
   "description": "AI agent configuration rules for the organization's coding workflow",
   "main": "index.js",
   "scripts": {
@@ -11,8 +11,7 @@
     "ai",
     "agent",
     "config",
-    "opencode",
-    "cursor"
+    "opencode"
   ],
   "author": "Organization",
   "license": "MIT",

@@ -4,6 +4,18 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [2.0.0] - 2026-06-22
+
+### Added
+- OpenCode backend review-mode rule migrated from the retired Cursor configuration
+
+### Changed
+- Documentation, installer defaults, and generated installer now describe an OpenCode-only setup
+- Installer generator now correctly preserves runtime variables while generating the installer script
+
+### Removed
+- Cursor configuration, documentation, and MCP integration
+
 ## [1.3.3] - 2026-04-27
 
 ### Fixed

@@ -10,7 +10,7 @@ Repositório de **configurações de agentes de IA** para padronização e melho
 
 ## 🎯 O que é este repositório?
 
-Este é um repositório **meta** que centraliza configurações, regras e automações para agentes de IA como **OpenCode** e **Cursor**.
+Este é um repositório **meta** que centraliza configurações, regras e automações para o **OpenCode**.
 
 O objetivo é garantir que qualquer agente de IA trabalhando neste ecossistema siga:
 - Padrões de código consistentes
@@ -148,10 +148,6 @@ meu-projeto/
 │   ├── commands/               # Comandos personalizados (tdp, release, update, code-review)
 │   ├── skills/                  # Skills especializadas (backend-code-review)
 │   └── agents/                  # Agents adicionais
-├── .cursor/                    # Configurações do Cursor
-│   ├── rules/                   # Regras de review
-│   ├── skills/                  # Skills especializadas
-│   └── mcp.json                 # Configurações MCP (Jira, GitLab)
 ├── commands/                   # Comandos OpenCode (fonte, compilados em AGENTS.md)
 ├── rules/                       # Regras OpenCode (fonte, compiladas em AGENTS.md)
 ├── skills/                      # Skills OpenCode (fonte, compiladas em AGENTS.md)
@@ -174,7 +170,6 @@ meu-projeto/
 | Guia | Descrição |
 |------|-----------|
 | **[OpenCode Config](docs/opencode-config.md)** | Regras, comandos, fluxo de trabalho, segurança, arquitetura, conventional commits |
-| **[Cursor Config](docs/cursor-config.md)** | Skill de code review, regras, integrações MCP, troubleshooting |
 | **[Instalador](INSTALLER.md)** | Documentação completa do instalador, flags, versionamento, backup |
 
 ---

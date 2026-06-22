@@ -1,15 +1,14 @@
 # AGENTS.md — AI Configs
 
-This repository contains **AI agent configuration rules** for the organization's coding workflow. It is a meta-repository used by OpenCode and Cursor AI assistants.
+This repository contains **OpenCode agent configuration rules** for the organization's coding workflow.
 
 ---
 
 ## 1. Project Overview
 
 This repo provides:
-- **OpenCode rules**: Git governance, Technical Design Phase (TDP), release workflows
-- **Cursor rules**: Backend code review, security analysis, anti-pattern detection
-- **Skills**: Automated MR review with Jira integration
+- **OpenCode rules**: Git governance, Technical Design Phase (TDP), release workflows, backend code review, security analysis, and anti-pattern detection
+- **OpenCode skills**: Automated backend code review
 
 ### Tech Stack (Target Projects)
 - Node.js / TypeScript
@@ -311,9 +310,9 @@ await repo.query('SELECT * FROM users WHERE email = ?', [email])
 |---------|------|
 | OpenCode rules | `.opencode/rules/` |
 | OpenCode commands | `.opencode/commands/` |
-| Cursor rules | `.cursor/rules/` |
-| Cursor skills | `.cursor/skills/backend-code-review/` |
-| Comment templates | `.cursor/skills/backend-code-review/references/comment-templates.md` |
+| OpenCode rules | `rules/` |
+| OpenCode skills | `skills/backend-code-review/` |
+| Comment templates | `skills/backend-code-review/references/comment-templates.md` |
 
 <!-- BEGIN OPENCODE AUTO -->
 # 🔒 Compiled OpenCode Configuration
@@ -590,6 +589,90 @@ Aguarde aprovação explícita antes de qualquer implementação.
 
 ## Tarefa Solicitada
 $ARGUMENTS
+
+## commands/update-opencode.md
+
+---
+description: Check for updates and update OpenCode AGENT configuration files (NOT application code)
+mode: subagent
+tools:
+  bash: true
+---
+
+# OpenCode Configuration Self-Update
+
+**IMPORTANT: This command is EXCLUSIVELY for updating OpenCode agent configuration files.**
+
+This command does NOT update application code, business logic, or any project-specific files. It ONLY updates OpenCode configuration artifacts such as:
+- AGENTS.md
+- Rules (*.md files in rules/)
+- Commands (*.md files in commands/)
+- Skills (*.md files in skills/)
+- Other OpenCode configuration files
+
+## Workflow
+
+### 1. Check current version
+
+**IMPORTANT:** Search in both locations:
+- Global: `~/.config/opencode/opencode.version`
+- Local (project): `.opencode/opencode.version`
+
+Read the installed version from the first location found in this order.
+
+If neither file exists, report that OpenCode configuration is not installed in this project (checked both global and local).
+
+### 2. Fetch latest version
+
+Use GitHub API to fetch the latest release tag:
+
+```bash
+curl -sf https://api.github.com/repos/rodrigocnascimento/bot-configs/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | sed 's/^v//'
+```
+
+If the releases API fails, fall back to reading `package.json` version:
+
+```bash
+curl -sf https://raw.githubusercontent.com/rodrigocnascimento/bot-configs/main/package.json | grep '"version"' | head -1 | cut -d'"' -f4
+```
+
+### 3. Compare versions
+
+Compare the local version (semver) with the latest version.
+
+Present the comparison to the user:
+
+- If up to date: inform and stop
+- If update available: show what version → what version and ask for confirmation
+
+### 4. Update
+
+If the user confirms, execute the installer with the `--update` flag:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rodrigocnascimento/bot-configs/main/dist/install-opencode.sh | bash -s -- --update
+```
+
+If the user wants a forced reinstall:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rodrigocnascimento/bot-configs/main/dist/install-opencode.sh | bash -s -- --force
+```
+
+### 5. After update
+
+- Verify the new version by reading `~/.config/opencode/opencode.version` or `.opencode/opencode.version`
+- Inform the user of the updated version
+- Note: the AGENTS.md file distributed with OpenCode is pre-compiled and does not need a separate compile step in the target project
+
+## Important
+
+- **NEVER use this for application code updates**
+- **NEVER update business logic or project-specific files**
+- Only update OpenCode configuration artifacts
+- Never update without explicit user confirmation
+- Always show the version comparison before asking to proceed
+- If the update fails, the backup at `.opencode.bak/` can be restored manually
 
 ## rules/10-no-pull-main.md
 
@@ -2153,6 +2236,67 @@ Anti-patterns are symptoms of deeper architectural or safety issues.
 Detection > silence.
 Correction > tolerance.
 
+## rules/backend-review-mode.md
+
+# Rule: Backend Review Mode (BRM)
+
+## Context
+
+When the Developer requests a code review, pull-request review, merge-request review, or diff analysis, the agent must perform a deep technical backend review.
+
+This rule applies to Node.js, TypeScript, Express, TypeORM, MySQL, Clean Architecture, tsyringe, and Jest projects. It complements the anti-pattern, security, and Staff Engineer review rules.
+
+## Required Review Process
+
+1. Read the complete diff or supplied code before making findings.
+2. Evaluate architecture, security, data consistency, logic, performance, testing, and code quality.
+3. Apply the review rules and comment templates in `skills/backend-code-review/references/`.
+4. Classify every finding as Critical, Important, or Suggestion.
+5. Provide concrete corrections and a structured review summary.
+
+## Priority Order
+
+Review findings in this order:
+
+1. Security
+2. Data consistency
+3. Logic bugs
+4. Architecture
+5. Performance
+6. Tests
+7. Code quality
+
+## Architecture Guardrails
+
+Expected dependency direction:
+
+```mermaid
+flowchart LR
+  Controller --> UseCase[Use case or service]
+  UseCase --> Repository
+  Repository --> Database
+```
+
+The following are architectural violations:
+
+- A controller accesses a repository directly.
+- A use case accesses an ORM directly.
+- Domain code depends on infrastructure.
+
+## Review Heuristics
+
+- **Async:** missing `await`, sequential async loops, and unhandled errors.
+- **Database:** in-memory filtering, N+1 queries, unbounded queries, and multi-operation flows without a transaction.
+- **TypeScript:** unsafe `any`, missing DTOs, and missing explicit return types.
+
+## Finding Format
+
+Use the backend code-review templates. Address the Developer, explain the impact objectively, and propose a concrete correction.
+
+## Hard Execution Gate
+
+The agent must not approve a review without evaluating the required dimensions or without flagging critical security, consistency, or architecture violations.
+
 ## rules/backend-security-review.md
 
 # Rule: Backend Security Review (BSR)
@@ -2642,6 +2786,174 @@ Correct layer > convenience.
 Explicit boundary > implicit coupling.
 Testable > clever.
 
+## skills/backend-code-review/SKILL.md
+
+---
+
+name: backend-code-review
+description: Realiza code review de código backend Node.js/TypeScript aplicando regras de arquitetura Clean Architecture, segurança, persistência TypeORM, qualidade de código e cobertura de testes.
+
+---
+
+# Backend Code Review
+
+Review guide for backend projects using:
+
+- Node.js
+- TypeScript
+- Express
+- TypeORM
+- MySQL
+- Clean Architecture
+- tsyringe
+- Jest
+
+Use templates in `references/comment-templates.md` to format comments.
+
+---
+
+# Workflow
+
+Follow the steps **in order**.
+
+---
+
+# Step 1 — Collect code for review
+
+The user must provide the code to review. This can be:
+
+- A diff (git diff, PR diff)
+- Specific files
+- A code snippet
+- A branch name (the agent will read the diff)
+
+If the user does not provide code, ask:
+
+> "Which code would you like me to review? You can provide a diff, file paths, a branch name, or paste a snippet."
+
+---
+
+# Step 2 — Apply review rules
+
+Apply the rules defined in:
+
+```
+references/review-rules.md
+```
+
+Also apply rules from:
+
+- `rules/backend-anti-patterns.md` — anti-pattern detection
+- `rules/backend-security-review.md` — security vulnerability detection
+- `rules/staff-engineer-review.md` — Staff Engineer-level review dimensions
+
+Prioritize:
+
+## 🔴 Critical
+
+- security
+- data consistency
+- bugs
+
+## 🟡 Important
+
+- architecture
+- performance
+- tests
+
+## 🟢 Improvements
+
+- patterns
+- naming
+- organization
+
+---
+
+# Step 3 — Analyze critical dimensions
+
+For each finding, evaluate across all review dimensions:
+
+1. **Architecture** — layer violations, coupling, boundary breaches
+2. **Domain Design** — misplaced business logic, anemic entities
+3. **Scalability** — N+1, in-memory filters, unbounded queries
+4. **Reliability** — missing error handling, missing transactions
+5. **Observability** — missing logs, generic errors
+6. **Testability** — untestable code, missing mocks
+
+---
+
+# Step 4 — Generate structured preview
+
+Generate a preview using templates from `references/comment-templates.md`:
+
+```
+## Review Preview
+
+### [FILE: src/controllers/user-controller.ts]
+
+Line 32 | 🔴 Bug
+
+Problem description.
+
+Suggestion.
+
+---
+
+### [FILE: src/usecases/create-user.ts]
+
+Line 14 | 🟡 Architecture
+
+Description.
+
+---
+
+## Summary
+
+Critical: N
+Important: N
+Suggestions: N
+```
+
+---
+
+# Step 5 — Issue summary
+
+At the end, generate a structured summary:
+
+```
+## Code Review — Summary
+
+### Findings
+
+- 🔴 Critical: N
+- 🟡 Important: N
+- 💡 Suggestions: N
+
+### Top Issues
+
+1. [Most critical finding]
+2. [Second most critical]
+3. [Third most critical]
+
+### Recommended Actions
+
+- [Action for most critical finding]
+- [Action for second finding]
+- [Action for third finding]
+```
+
+---
+
+# Important Guidelines
+
+- Always read the full code/diff before commenting
+- Never comment without understanding the context
+- Classify every finding by severity
+- Provide concrete suggestions, not just criticism
+- Distinguish between "must fix" (🔴) and "nice to have" (💡)
+- If no critical issues are found, state that clearly
+- Focus on the code — do not speculate about Jira tickets or external requirements
+
 ## skills/backend-code-review/references/comment-templates.md
 
 # Inline Comment Templates — Backend Code Review
@@ -2945,172 +3257,4 @@ Rules:
 - Structured logs
 - Error standardization (`AppError`)
 - Consistent naming
-
-## skills/backend-code-review/SKILL.md
-
----
-
-name: backend-code-review
-description: Realiza code review de código backend Node.js/TypeScript aplicando regras de arquitetura Clean Architecture, segurança, persistência TypeORM, qualidade de código e cobertura de testes.
-
----
-
-# Backend Code Review
-
-Review guide for backend projects using:
-
-- Node.js
-- TypeScript
-- Express
-- TypeORM
-- MySQL
-- Clean Architecture
-- tsyringe
-- Jest
-
-Use templates in `references/comment-templates.md` to format comments.
-
----
-
-# Workflow
-
-Follow the steps **in order**.
-
----
-
-# Step 1 — Collect code for review
-
-The user must provide the code to review. This can be:
-
-- A diff (git diff, PR diff)
-- Specific files
-- A code snippet
-- A branch name (the agent will read the diff)
-
-If the user does not provide code, ask:
-
-> "Which code would you like me to review? You can provide a diff, file paths, a branch name, or paste a snippet."
-
----
-
-# Step 2 — Apply review rules
-
-Apply the rules defined in:
-
-```
-references/review-rules.md
-```
-
-Also apply rules from:
-
-- `rules/backend-anti-patterns.md` — anti-pattern detection
-- `rules/backend-security-review.md` — security vulnerability detection
-- `rules/staff-engineer-review.md` — Staff Engineer-level review dimensions
-
-Prioritize:
-
-## 🔴 Critical
-
-- security
-- data consistency
-- bugs
-
-## 🟡 Important
-
-- architecture
-- performance
-- tests
-
-## 🟢 Improvements
-
-- patterns
-- naming
-- organization
-
----
-
-# Step 3 — Analyze critical dimensions
-
-For each finding, evaluate across all review dimensions:
-
-1. **Architecture** — layer violations, coupling, boundary breaches
-2. **Domain Design** — misplaced business logic, anemic entities
-3. **Scalability** — N+1, in-memory filters, unbounded queries
-4. **Reliability** — missing error handling, missing transactions
-5. **Observability** — missing logs, generic errors
-6. **Testability** — untestable code, missing mocks
-
----
-
-# Step 4 — Generate structured preview
-
-Generate a preview using templates from `references/comment-templates.md`:
-
-```
-## Review Preview
-
-### [FILE: src/controllers/user-controller.ts]
-
-Line 32 | 🔴 Bug
-
-Problem description.
-
-Suggestion.
-
----
-
-### [FILE: src/usecases/create-user.ts]
-
-Line 14 | 🟡 Architecture
-
-Description.
-
----
-
-## Summary
-
-Critical: N
-Important: N
-Suggestions: N
-```
-
----
-
-# Step 5 — Issue summary
-
-At the end, generate a structured summary:
-
-```
-## Code Review — Summary
-
-### Findings
-
-- 🔴 Critical: N
-- 🟡 Important: N
-- 💡 Suggestions: N
-
-### Top Issues
-
-1. [Most critical finding]
-2. [Second most critical]
-3. [Third most critical]
-
-### Recommended Actions
-
-- [Action for most critical finding]
-- [Action for second finding]
-- [Action for third finding]
-```
-
----
-
-# Important Guidelines
-
-- Always read the full code/diff before commenting
-- Never comment without understanding the context
-- Classify every finding by severity
-- Provide concrete suggestions, not just criticism
-- Distinguish between "must fix" (🔴) and "nice to have" (💡)
-- If no critical issues are found, state that clearly
-- Focus on the code — do not speculate about Jira tickets or external requirements
 <!-- END OPENCODE AUTO -->
