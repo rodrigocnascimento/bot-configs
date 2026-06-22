@@ -42,7 +42,7 @@ VERSION_FILE="opencode.version"
 BACKUP_DIR_NAME=".opencode.bak"
 
 # Embedded version (updated at generation time)
-EMBEDDED_VERSION="1.4.0"
+EMBEDDED_VERSION="2.0.0"
 
 # Target directory base
 TARGET_BASE="${PWD:-.}" || true
@@ -131,7 +131,7 @@ parse_args() {
 # Check dependencies
 check_deps() {
     local deps=("curl" "jq")
-    for dep in ""; do
+    for dep in "${deps[@]}"; do
         if ! command -v "$dep" &> /dev/null; then
             error "$dep is required but not installed"
             exit 1
@@ -305,17 +305,17 @@ download_folder_git() {
 
 # Download version file
 download_version_file() {
-    local dest_path="/opencode.version"
+    local dest_path="${TARGET_DIR}/${VERSION_FILE}"
     info "Downloading version file..."
-    if download_file "opencode.version" ""; then
+    if download_file "${VERSION_FILE}" "$dest_path"; then
         # Ensure the embedded version is written
-        echo "" > ""
-        success "Version file written: "
+        echo "${EMBEDDED_VERSION}" > "$dest_path"
+        success "Version file written: ${EMBEDDED_VERSION}"
         return 0
     else
         # Write embedded version as fallback
-        echo "" > ""
-        success "Version file written (embedded): "
+        echo "${EMBEDDED_VERSION}" > "$dest_path"
+        success "Version file written (embedded): ${EMBEDDED_VERSION}"
         return 0
     fi
 }
@@ -325,11 +325,11 @@ create_opencode_json() {
     local config_path="${INSTALL_DIR}/opencode.json"
     info "Creating opencode.json..."
     
-    mkdir -p "." || true
+    mkdir -p "$(dirname "$config_path")" || true
     
-    cat > "" <<'OPENCODE_JSON'
+    cat > "$config_path" <<'OPENCODE_JSON'
 {
-  "": "https://opencode.ai/config.json",
+  "$schema": "https://opencode.ai/config.json",
   "version": "1.0"
 }
 OPENCODE_JSON
@@ -511,8 +511,8 @@ do_install() {
     fi
     
 # Create install directory
-    mkdir -p ""
-    success "Created "
+    mkdir -p "$INSTALL_DIR"
+    success "Created ${INSTALL_DIR}"
     echo ""
     
     # Download each folder

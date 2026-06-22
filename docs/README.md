@@ -12,11 +12,6 @@ Central de documentação para configurações de agentes de IA no ecossistema d
 - [Comandos](opencode/comandos.md)
 - [Fluxo de Trabalho](opencode/fluxo-de-trabalho.md)
 
-### Cursor
-- [Visão Geral](cursor/visão-geral.md)
-- [Skills](cursor/skills.md)
-- [Regras de Review](cursor/regras-de-review.md)
-
 ### Regras Gerais
 - [Git Governance](regras/git-governance.md)
 - [Code Style](regras/code-style.md)
@@ -32,7 +27,7 @@ Central de documentação para configurações de agentes de IA no ecossistema d
 
 ## 🎯 Objetivo
 
-Padronizar o comportamento de agentes de IA (OpenCode, Cursor) para garantir:
+Padronizar o comportamento de agentes de IA com OpenCode para garantir:
 - Consistência no código
 - Segurança nas operações Git
 - Qualidade nas revisões

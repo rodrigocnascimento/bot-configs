@@ -107,7 +107,7 @@ Edite `installer.config`:
 
 ```bash
 # Pastas padrão (espaço separado)
-DEFAULT_FOLDERS="commands rules skills docs .cursor"
+DEFAULT_FOLDERS="commands rules skills docs"
 
 # Arquivo de versão
 VERSION_FILE="opencode.version"
