@@ -154,10 +154,10 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 ## [1.0.0] - 2026-04-03
 
 ### Added
-- Feature-007 module implementation with clean architecture
+- Example feature-007 module with clean architecture (removed in 2.0.1)
   - DTOs, entities, repositories, use cases, and controllers
   - Comprehensive unit tests for the feature-007 use case
-- Technical Design Document for feature-007 (specs/tdd-feature-007-feature-implementation.md)
+- Technical Design Document for feature-007 (specs/tdd-feature-007-feature-implementation.md) (removed in 2.0.1)
 - Fixed Mermaid diagram syntax error in docs/fluxos/feature-branch-flow.md
 - Initial package.json with version 1.0.0
 
