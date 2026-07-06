@@ -101,25 +101,20 @@ BACKUP_DIR_NAME=".opencode.bak"
 EMBEDDED_VERSION="${CURRENT_VERSION}"
 
 # Target directory base
-TARGET_BASE="\${PWD:-.}" || true
-: "\${TARGET_BASE:=.}" || true
+TARGET_BASE="\${PWD:-.}"
 TEMP_DIR=""
 
 # Resolve HOME if not set
-HOME_DIR="\${HOME:-}" || true
+HOME_DIR="\${HOME:-}"
 
 # Determine install directory based on runtime context (global vs local)
 # If executing from ~/.config → global → use "opencode" (no dot)
 # Otherwise → local → use ".opencode" (with dot)
-if [[ -n "\$HOME_DIR" && ("\$TARGET_BASE" == "\$HOME_DIR/.config" || "\$TARGET_BASE" == "\${HOME_DIR}/.config") ]]; then
+if [[ -n "\$HOME_DIR" && "\$TARGET_BASE" == "\$HOME_DIR/.config" ]]; then
     INSTALL_DIR="\${TARGET_BASE}/opencode"
 else
     INSTALL_DIR="\${TARGET_BASE}/.opencode"
 fi
-
-# Legacy variable (kept for backward compatibility)
-TARGET_DIR="\${INSTALL_DIR}"
-TARGET_DIR="\${INSTALL_DIR}"
 
 # Mode flags
 MODE_INSTALL=true
@@ -217,8 +212,8 @@ semver_compare() {
 
 # Get local installed version
 get_local_version() {
-    if [[ -f "\${TARGET_DIR}/\${VERSION_FILE}" ]]; then
-        cat "\${TARGET_DIR}/\${VERSION_FILE}" | tr -d '[:space:]'
+    if [[ -f "\${INSTALL_DIR}/\${VERSION_FILE}" ]]; then
+        cat "\${INSTALL_DIR}/\${VERSION_FILE}" | tr -d '[:space:]'
     else
         echo "0.0.0"
     fi
@@ -305,7 +300,7 @@ download_folder() {
         [[ -z "\$path" ]] && continue
         [[ "\$path" == "\$folder" ]] && continue
         
-        local dest_path="\${TARGET_DIR}/\${path}"
+        local dest_path="\${INSTALL_DIR}/\${path}"
         
         if [[ "\$type" == "dir" ]]; then
             # Recursively download subdirectory
@@ -348,8 +343,8 @@ download_folder_git() {
         if command -v unzip &> /dev/null; then
             unzip -q "\$temp_zip" "\${GITHUB_REPO}-\${GITHUB_BRANCH}/\${folder}/*" -d "\$TEMP_DIR"
             if [[ -d "\${TEMP_DIR}/\${GITHUB_REPO}-\${GITHUB_BRANCH}/\${folder}" ]]; then
-                mkdir -p "\${TARGET_DIR}/\${folder}"
-                cp -r "\${TEMP_DIR}/\${GITHUB_REPO}-\${GITHUB_BRANCH}/\${folder}"/* "\${TARGET_DIR}/\${folder}/"
+                mkdir -p "\${INSTALL_DIR}/\${folder}"
+                cp -r "\${TEMP_DIR}/\${GITHUB_REPO}-\${GITHUB_BRANCH}/\${folder}"/* "\${INSTALL_DIR}/\${folder}/"
                 success "Downloaded \${folder}"
                 return 0
             fi
@@ -361,7 +356,7 @@ download_folder_git() {
 
 # Download version file
 download_version_file() {
-    local dest_path="\${TARGET_DIR}/\${VERSION_FILE}"
+    local dest_path="\${INSTALL_DIR}/\${VERSION_FILE}"
     info "Downloading version file..."
     if download_file "\${VERSION_FILE}" "\$dest_path"; then
         # Ensure the embedded version is written
@@ -381,7 +376,7 @@ create_opencode_json() {
     local config_path="\${INSTALL_DIR}/opencode.json"
     info "Creating opencode.json..."
     
-    mkdir -p "\$(dirname "\$config_path")" || true
+    mkdir -p "\$(dirname "\$config_path")"
     
     cat > "\$config_path" <<'OPENCODE_JSON'
 {
@@ -397,7 +392,7 @@ OPENCODE_JSON
 backup_existing() {
     local backup_dir="\${PWD}/\${BACKUP_DIR_NAME}"
     
-    if [[ ! -d "\$TARGET_DIR" ]]; then
+    if [[ ! -d "\$INSTALL_DIR" ]]; then
         return 0
     fi
     
@@ -407,7 +402,7 @@ backup_existing() {
     fi
     
     info "Backing up existing .opencode/ to \${BACKUP_DIR_NAME}/..."
-    cp -r "\$TARGET_DIR" "\$backup_dir"
+    cp -r "\$INSTALL_DIR" "\$backup_dir"
     success "Backup created: \${BACKUP_DIR_NAME}/"
 }
 
@@ -507,7 +502,7 @@ do_update() {
             
             # Proceed with installation (overwrite existing)
             info "Updating..."
-            rm -rf "\$TARGET_DIR"
+            rm -rf "\$INSTALL_DIR"
             do_install
             ;;
         *)
@@ -550,10 +545,10 @@ do_install() {
     echo ""
     
     # Check if target directory exists
-    if [[ -d "\$TARGET_DIR" ]]; then
+    if [[ -d "\$INSTALL_DIR" ]]; then
         if [[ "\${MODE_FORCE}" == true ]]; then
             warning "Force mode: overwriting existing .opencode/"
-            rm -rf "\$TARGET_DIR"
+            rm -rf "\$INSTALL_DIR"
         else
             warning ".opencode/ already exists in current directory"
             read -p "Overwrite? (y/N): " -n 1 -r
@@ -562,11 +557,11 @@ do_install() {
                 info "Installation cancelled"
                 exit 0
             fi
-            rm -rf "\$TARGET_DIR"
+            rm -rf "\$INSTALL_DIR"
         fi
     fi
     
-# Create install directory
+    # Create install directory
     mkdir -p "\$INSTALL_DIR"
     success "Created \${INSTALL_DIR}"
     echo ""
@@ -597,7 +592,7 @@ do_install() {
     if [[ \$success_folders -eq \$total_folders ]]; then
         success "Installation complete! (\${success_folders}/\${total_folders} folders)"
         echo ""
-        info "Installed to: \${TARGET_DIR}"
+        info "Installed to: \${INSTALL_DIR}"
         info "Version: \${EMBEDDED_VERSION}"
         success "OpenCode is ready to use!"
     else
