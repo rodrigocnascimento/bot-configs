@@ -201,3 +201,21 @@ Agent: Task concluída. /finish-task
 User: approved
 Agent: /release
 ```
+
+---
+
+## /code-review - Revisão Automatizada de Código
+
+### Descrição
+Executa revisão completa de código backend em uma sessão filha (`subagent: true`) utilizando o agente somente-leitura `code-reviewer` (`edit: deny`, `shell: deny`) e a skill `backend-code-review`.
+
+### Quando usar
+Antes de abrir PR ou finalizar uma entrega para validar anti-patterns, segurança OWASP, Clean Architecture e cobertura de testes.
+
+---
+
+## /update-opencode - Atualizar Configurações OpenCode
+
+### Descrição
+Verifica e atualiza exclusivamente os arquivos de configuração do OpenCode (`agents/`, `commands/`, `rules/`, `skills/`) a partir deste repositório, preservando backup em `.opencode.bak/`.
+> **Nota OpenCode v2:** O comando nativo `/update` da TUI do OpenCode v2 atualiza o binário do OpenCode. Use sempre `/update-opencode` para atualizar as regras e comandos deste repositório.

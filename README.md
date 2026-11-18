@@ -56,9 +56,9 @@ git clone git@github.com:rodrigocnascimento/bot-configs.git ~/.config/opencode
 
 Isso faz com que todas as regras, comandos e tools definidos aqui sejam carregados automaticamente em **todos os projetos** que você usar com OpenCode.
 
-### Método 3: Atualizar via Comando `/update`
+### Método 3: Atualizar via Comando `/update-opencode`
 
-Dentro de um projeto com OpenCode instalado, use o comando `/update` para verificar e atualizar as configurações sem sair do terminal.
+Dentro de um projeto com OpenCode instalado, use o comando `/update-opencode` para verificar e atualizar as configurações deste repositório sem sair do terminal (nota: o comando nativo `/update` do OpenCode v2 atualiza o próprio binário do OpenCode).
 
 ---
 
@@ -93,6 +93,20 @@ mv .opencode.bak .opencode
 
 ---
 
+## 📱 Controle Remoto via Telegram (OpenCode v2)
+
+Para monitorar sessões, aprovar permissões com botões inline, responder perguntas do agente e delegar tarefas pelo celular, utilize o cliente [`@grinev/opencode-telegram-bot`](https://github.com/grinev/opencode-telegram-bot) conectado ao serviço local do OpenCode v2:
+
+```bash
+opencode serve --service
+opencode service get password
+npx @grinev/opencode-telegram-bot@latest
+```
+
+> **Guia completo:** consulte [docs/opencode/telegram-bot.md](docs/opencode/telegram-bot.md).
+
+---
+
 ## 📦 Versionamento
 
 A versão das configurações é rastreada pelo arquivo `.opencode/opencode.version`. O instalador:
@@ -111,16 +125,17 @@ cat .opencode/opencode.version
 
 ## 🔧 Configuração por Projeto
 
-Em cada projeto, você pode adicionar configs específicas que **se misturam** com as globais. O OpenCode mergeia as duas camadas:
+Em cada projeto, você pode adicionar configs específicas que **se misturam** com as globais. O OpenCode v2 mergeia as camadas:
 
 ```
 meu-projeto/
 ├── .opencode/          # configs extras só deste projeto
-│   ├── rules/          # regras adicionais
+│   ├── agents/         # agents adicionais (ex: code-reviewer)
 │   ├── commands/       # comandos adicionais
-│   └── agents/         # agents adicionais
-├── AGENTS.md           # contexto específico do projeto
-└── opencode.json       # overrides (modelo, provider, etc)
+│   ├── rules/          # regras adicionais (carregadas via instructions no opencode.json)
+│   ├── skills/         # skills adicionais
+│   └── opencode.json   # schema v2, instructions e permissions
+└── AGENTS.md           # contexto específico do projeto
 ```
 
 **Como funciona o merge:**
@@ -134,7 +149,7 @@ meu-projeto/
 |---|---|
 | `~/.config/opencode/rules/` | Regras que valem pra **todos** os projetos |
 | `meu-projeto/.opencode/rules/` | Regras extras **só daquele projeto** |
-| `~/.config/opencode/commands/` | Comandos globais (`/tdp`, `/release`, etc) |
+| `~/.config/opencode/commands/` | Comandos globais (`/tdp`, `/release`, `/update-opencode`, etc) |
 | `meu-projeto/.opencode/commands/` | Comandos extras **só daquele projeto** |
 | `meu-projeto/AGENTS.md` | Contexto da codebase (gerado por `/init`) |
 
@@ -143,22 +158,18 @@ meu-projeto/
 ## 🏗️ Estrutura do Repositório
 
 ```
-├── .opencode/                  # Configurações do OpenCode
-│   ├── rules/                  # Regras operacionais (anti-patterns, security, staff-engineer)
-│   ├── commands/               # Comandos personalizados (tdp, release, update, code-review)
-│   ├── skills/                  # Skills especializadas (backend-code-review)
-│   └── agents/                  # Agents adicionais
-├── commands/                   # Comandos OpenCode (fonte, compilados em AGENTS.md)
-├── rules/                       # Regras OpenCode (fonte, compiladas em AGENTS.md)
-├── skills/                      # Skills OpenCode (fonte, compiladas em AGENTS.md)
+├── agents/                      # Agentes OpenCode v2 (ex: code-reviewer.md)
+├── commands/                    # Comandos OpenCode v2 (tdp, release, finish-task, code-review, update-opencode)
+├── rules/                       # Regras OpenCode (fonte, compiladas em AGENTS.md e carregadas via instructions)
+├── skills/                      # Skills OpenCode (backend-code-review)
 ├── dist/                        # Instalador gerado
-│   └── install-opencode.sh     # Curl-to-bash installer
+│   └── install-opencode.sh      # Curl-to-bash installer
 ├── specs/                       # Technical Design Documents (TDDs)
-├── docs/                        # 📚 Documentação completa
+├── docs/                        # 📚 Documentação completa (incluindo guia do Telegram Bot)
 │
 ├── opencode.version             # Versão atual das configurações
 ├── installer.config             # Configuração do instalador (pastas, URLs)
-├── generate-installer.sh       # Script gerador do instalador
+├── generate-installer.sh        # Script gerador do instalador
 ├── INSTALLER.md                 # 📖 Documentação do instalador
 └── AGENTS.md                    # Guia compilado para agentes de IA
 ```
@@ -170,6 +181,7 @@ meu-projeto/
 | Guia | Descrição |
 |------|-----------|
 | **[OpenCode Config](docs/opencode-config.md)** | Regras, comandos, fluxo de trabalho, segurança, arquitetura, conventional commits |
+| **[Telegram Bot](docs/opencode/telegram-bot.md)** | Controle remoto, aprovação de permissões e delegação de tarefas no OpenCode v2 via Telegram |
 | **[Instalador](INSTALLER.md)** | Documentação completa do instalador, flags, versionamento, backup |
 
 ---

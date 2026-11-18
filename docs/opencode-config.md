@@ -25,8 +25,10 @@
 | Comando | Descrição |
 |---------|-----------|
 | `/tdp` | Iniciar Technical Design Phase |
+| `/code-review` | Executar code review automatizado (subagent `code-reviewer`) |
 | `/finish-task` | Finalizar tarefa e solicitar aprovação |
 | `/release` | Executar release update após aprovação |
+| `/update-opencode` | Verificar e atualizar configurações do OpenCode |
 
 ---
 

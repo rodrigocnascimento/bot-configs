@@ -51,7 +51,7 @@ Apply the rules defined in:
 references/review-rules.md
 ```
 
-Also apply rules from:
+Also apply rules from (located in `.opencode/rules/`, `~/.config/opencode/rules/`, or `rules/`):
 
 - `rules/backend-anti-patterns.md` — anti-pattern detection
 - `rules/backend-security-review.md` — security vulnerability detection

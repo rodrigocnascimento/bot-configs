@@ -10,7 +10,7 @@ AGENTS_MD="$ROOT/AGENTS.md"
 BEGIN="<!-- BEGIN OPENCODE AUTO -->"
 END_MARKER="<!-- END OPENCODE AUTO -->"
 
-COMPILE_DIRS="commands rules skills"
+COMPILE_DIRS="agents commands rules skills"
 EXCLUDED_DIRS="plans|node_modules"
 
 collect_md_files() {
@@ -56,7 +56,7 @@ files=$(collect_md_files)
 file_count=$(echo "$files" | wc -l)
 
 if [[ -z "$files" ]]; then
-    echo "No .md files found in commands/, rules/, skills/" >&2
+    echo "No .md files found in agents/, commands/, rules/, skills/" >&2
     exit 1
 fi
 

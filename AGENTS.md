@@ -320,31 +320,52 @@ await repo.query('SELECT * FROM users WHERE email = ?', [email])
 > Auto-generated. Do not edit manually.
 
 
+## agents/code-reviewer.md
+
+---
+description: Revisa código backend Node.js/TypeScript para qualidade, segurança e arquitetura sem alterar arquivos
+mode: subagent
+model: opencode/big-pickle
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: deny
+---
+
+Você é um Staff Backend Engineer responsável por revisar código Node.js/TypeScript (Express, TypeORM, MySQL, Clean Architecture, tsyringe, Jest).
+
+Carregue e execute a skill `backend-code-review` seguindo rigorosamente:
+- Regras de anti-patterns (`rules/backend-anti-patterns.md` ou `.opencode/rules/backend-anti-patterns.md`)
+- Regras de segurança OWASP (`rules/backend-security-review.md` ou `.opencode/rules/backend-security-review.md`)
+- Dimensões de revisão Staff Engineer (`rules/staff-engineer-review.md` ou `.opencode/rules/staff-engineer-review.md`)
+- Templates de comentário da skill (`references/comment-templates.md`)
+
+Não modifique arquivos nem execute comandos destrutivos. Forneça feedback estruturado por severidade (🔴 Critical, 🟡 Important, 💡 Suggestions) com referências exatas de arquivo e linha.
+
 ## commands/code-review.md
 
 ---
 description: Revisa código para qualidade e melhores práticas
-mode: subagent
+agent: code-reviewer
 model: opencode/big-pickle
-temperature: 0.1
-tools:
-  write: false
-  edit: false
-  bash: false
+subagent: true
 ---
 
-Carregue a skill backend-code-review e execute o workflow completo de revisão.
+Carregue a skill `backend-code-review` e execute o workflow completo de revisão.
 
-Aplique todas as regras definidas em:
+Aplique todas as regras definidas em (busque em `.opencode/rules/`, `~/.config/opencode/rules/` ou `rules/`):
 
-- rules/backend-anti-patterns.md
-- rules/backend-security-review.md
-- rules/staff-engineer-review.md
-- skills/backend-code-review/references/review-rules.md
+- `rules/backend-anti-patterns.md`
+- `rules/backend-security-review.md`
+- `rules/staff-engineer-review.md`
+- `skills/backend-code-review/references/review-rules.md`
 
 Use os templates de comentário definidos em:
 
-- skills/backend-code-review/references/comment-templates.md
+- `skills/backend-code-review/references/comment-templates.md`
 
 Forneça feedback construtivo sem fazer alterações diretas.
 
@@ -594,9 +615,7 @@ $ARGUMENTS
 
 ---
 description: Check for updates and update OpenCode AGENT configuration files (NOT application code)
-mode: subagent
-tools:
-  bash: true
+subagent: true
 ---
 
 # OpenCode Configuration Self-Update
@@ -1742,13 +1761,13 @@ Before finishing any task, verify:
 
 ## Context
 
-To ensure that the agent's operational instructions are always up-to-date, any modification within the `.opencode/` directory must be immediately reflected in the compiled `AGENTS.md` file. This compiled file is the single source of truth for the agent's rules and configurations during runtime.
+To ensure that the agent's operational instructions are always up-to-date, any modification within the OpenCode configuration directories (`agents/`, `commands/`, `rules/`, `skills/`, or `.opencode/`) must be immediately reflected in the compiled `AGENTS.md` file. This compiled file is the single source of truth for the agent's rules and configurations during runtime.
 
 ## The Protocol
 
 ### Trigger Conditions
 
-This rule is triggered by any of the following operations within the `.opencode/` directory or its subdirectories:
+This rule is triggered by any of the following operations within `agents/`, `commands/`, `rules/`, `skills/`, or `.opencode/` (and their subdirectories):
 
 - Creating a new file (rule, agent, command, skill, etc.)
 - Modifying an existing file
@@ -1764,13 +1783,13 @@ npm run opencode:compile
 
 ### Verification
 
-After execution, you must confirm that the command ran successfully and that the `AGENTS.md` file has been updated. No task involving a change to the `.opencode/` directory is complete until this command has been successfully executed.
+After execution, you must confirm that the command ran successfully and that the `AGENTS.md` file has been updated. No task involving a change to the OpenCode configuration directories is complete until this command has been successfully executed.
 
 ## Hard Execution Gate
 
 **STOP** and do not proceed with any other actions if:
 
-- A change was made in `.opencode/`.
+- A change was made in `agents/`, `commands/`, `rules/`, `skills/`, or `.opencode/`.
 - `npm run opencode:compile` has not been executed yet.
 
 This ensures the agent never operates with outdated instructions.
@@ -2841,7 +2860,7 @@ Apply the rules defined in:
 references/review-rules.md
 ```
 
-Also apply rules from:
+Also apply rules from (located in `.opencode/rules/`, `~/.config/opencode/rules/`, or `rules/`):
 
 - `rules/backend-anti-patterns.md` — anti-pattern detection
 - `rules/backend-security-review.md` — security vulnerability detection
