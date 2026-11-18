@@ -11,6 +11,7 @@ Central de documentação para configurações de agentes de IA no ecossistema d
 - [Regras Operacionais](opencode/regras-operacionais.md)
 - [Comandos](opencode/comandos.md)
 - [Fluxo de Trabalho](opencode/fluxo-de-trabalho.md)
+- [Telegram Bot (Controle Remoto v2)](opencode/telegram-bot.md)
 
 ### Regras Gerais
 - [Git Governance](regras/git-governance.md)

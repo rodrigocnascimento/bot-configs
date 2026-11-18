@@ -11,13 +11,15 @@
 - **Comandos customizados**: Fluxos automatizados via `/comando`
 - **Governança Git**: Protege branches e força boas práticas
 
-## Estrutura do OpenCode
+## Estrutura do OpenCode (v2)
 
 ```
 .opencode/
-├── rules/          # Regras operacionais (10-90)
+├── agents/         # Agentes especializados (ex: code-reviewer.md)
 ├── commands/       # Comandos customizados
-└── agents/        # Agentes especializados
+├── rules/          # Regras operacionais (carregadas via instructions no opencode.json)
+├── skills/         # Skills reutilizáveis (ex: backend-code-review)
+└── opencode.json   # Schema v2, instructions e permissions
 ```
 
 ## Lista de Regras
@@ -29,18 +31,23 @@
 | 30 | Git Governance | Force-push bloqueado, Conventional Commits |
 | 40 | No Root Aliases | Proibir `@/` imports |
 | 50 | Plan Before Work | TDP obrigatório |
+| 55 | Mermaid Diagrams | Apenas diagramas Mermaid |
 | 60 | Entity+Migration | Completude no banco |
 | 70 | Version Bump | Changelog após aprovação |
 | 80 | Release Governance | Aprovação explícita para release |
-| 90 | Mermaid Diagrams | Apenas diagramas Mermaid |
+| 90 | Mandatory Tests | Testes unitários obrigatórios |
+| 95 | Compile on Change | Sincronizar `AGENTS.md` ao alterar configs |
+| 99 | No Unsafe Types | Proibir `any` e tipos inseguros |
 
 ## Comandos Disponíveis
 
 | Comando | Função |
 |---------|--------|
 | `/tdp` | Iniciar Technical Design Phase |
+| `/code-review` | Revisão de código backend (subagent `code-reviewer`) |
 | `/finish-task` | Finalizar tarefa e pedir aprovação |
 | `/release` | Executar release (após aprovação) |
+| `/update-opencode` | Atualizar configurações OpenCode do projeto/global |
 
 ## Fluxo Básico
 
@@ -64,3 +71,4 @@ graph LR
 - [Regras Operacionais](regras-operacionais.md)
 - [Comandos](comandos.md)
 - [Fluxo de Trabalho](fluxo-de-trabalho.md)
+- [Telegram Bot (Controle Remoto v2)](telegram-bot.md)

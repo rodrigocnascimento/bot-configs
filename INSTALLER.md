@@ -47,8 +47,8 @@ O modo `--update`:
 curl -fsSL https://raw.githubusercontent.com/rodrigocnascimento/bot-configs/main/dist/install-opencode.sh | bash -s -- --force
 ```
 
-### Comando /update dentro do OpenCode
-Dentro de um projeto com OpenCode instalado, use o comando `/update` para verificar e atualizar as configurações sem sair do terminal.
+### Comando /update-opencode dentro do OpenCode
+Dentro de um projeto com OpenCode instalado, use o comando `/update-opencode` para verificar e atualizar as configurações sem sair do terminal.
 
 ## Comportamento de Backup
 
@@ -98,7 +98,7 @@ Ao fazer uma nova release:
 - `generate-installer.sh` - Script gerador
 - `dist/install-opencode.sh` - Instalador final (gerado, com versão embedded)
 - `opencode.version` - Arquivo de versão distribuído com o instalador
-- `.opencode/commands/update.md` - Comando `/update` do OpenCode
+- `commands/update-opencode.md` - Comando `/update-opencode` do OpenCode
 - `.github/workflows/generate-installer.yml` - Workflow do GitHub Actions
 
 ## Configuração
@@ -107,7 +107,7 @@ Edite `installer.config`:
 
 ```bash
 # Pastas padrão (espaço separado)
-DEFAULT_FOLDERS="commands rules skills docs"
+DEFAULT_FOLDERS="agents commands rules skills docs"
 
 # Arquivo de versão
 VERSION_FILE="opencode.version"

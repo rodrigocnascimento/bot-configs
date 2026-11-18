@@ -1,8 +1,6 @@
 ---
 description: Check for updates and update OpenCode AGENT configuration files (NOT application code)
-mode: subagent
-tools:
-  bash: true
+subagent: true
 ---
 
 # OpenCode Configuration Self-Update

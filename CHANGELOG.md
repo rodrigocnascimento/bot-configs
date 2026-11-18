@@ -4,6 +4,25 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [2.1.0] - 2026-11-18
+
+### Added
+- Subagente somente-leitura `agents/code-reviewer.md` com `permissions` nativas do OpenCode v2 (`edit: deny`, `shell: deny`)
+- Configuração automática de `instructions` e `permissions` de Git Governance no `opencode.json` gerado pelo instalador (schema OpenCode v2)
+- Documentação completa para integração e controle remoto via Telegram com `@grinev/opencode-telegram-bot` (`docs/opencode/telegram-bot.md`)
+- TDD da migração para OpenCode v2 (`specs/tdd-opencode-v2-migration.md`)
+
+### Changed
+- Frontmatter de `commands/code-review.md` e `commands/update-opencode.md` migrado para o padrão OpenCode v2 (`subagent: true`, `agent: code-reviewer`)
+- `installer.config` e `opencodecompile.sh` atualizados para incluir o diretório `agents/`
+- Removido campo inválido `"version": "1.0"` do `opencode.json` gerado em `generate-installer.sh` e `dist/install-opencode.sh`
+- Documentação (`README.md`, `INSTALLER.md`, `docs/`) atualizada para usar `/update-opencode` em vez de `/update` (evitando conflito com o comando nativo da TUI v2)
+
+### Removed
+- Tool legada da v1 `tools/telegram-notify.ts` e dependência `@opencode-ai/plugin` do `package.json`
+
+---
+
 ## [2.0.0] - 2026-06-22
 
 ### Added
