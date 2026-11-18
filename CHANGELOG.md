@@ -4,6 +4,22 @@ Todas as mudanças significativas deste projeto serão documentadas neste arquiv
 
 ---
 
+## [2.2.0] - 2026-11-18
+
+### Added
+- Suporte a code review backend poliglota cobrindo Rust, Go, TypeScript, Python e Kotlin
+- Auto-detecção contextual da arquitetura do projeto (Clean Architecture, Hexagonal / Ports & Adapters, pacotes Go idiomáticos, crates/módulos Rust, Vertical Slice, Layered MVC)
+- Checklist idiomático por linguagem (`skills/backend-code-review/references/language-checklists.md`) com cobertura aprofundada de armadilhas de produção (concorrência, cancel-safety, truncamento de inteiros, event loop, goroutines, coroutines, ORMs)
+- Princípio de Inspeção Profunda Não-Exaustiva (*Non-Exhaustive Deep Inspection*) estabelecendo checklists como piso mínimo (*hard floor*)
+
+### Changed
+- Workflow de `skills/backend-code-review/SKILL.md` expandido para processo de 6 etapas poliglota e sensível à arquitetura
+- Diretrizes gerais de backend (`skills/backend-code-review/references/review-rules.md`) e templates de comentário (`skills/backend-code-review/references/comment-templates.md`) generalizados para padrões universais de backend
+- Subagente `agents/code-reviewer.md` e comando `commands/code-review.md` atualizados para orquestrar revisão em 2 camadas
+- Regras `rules/backend-anti-patterns.md`, `rules/backend-security-review.md`, `rules/staff-engineer-review.md` e `rules/backend-review-mode.md` generalizadas para backend poliglota
+
+---
+
 ## [2.1.0] - 2026-11-18
 
 ### Added

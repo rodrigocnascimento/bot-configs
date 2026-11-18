@@ -1,24 +1,18 @@
 ---
 
 name: backend-code-review
-description: Realiza code review de código backend Node.js/TypeScript aplicando regras de arquitetura Clean Architecture, segurança, persistência TypeORM, qualidade de código e cobertura de testes.
+description: Realiza code review aprofundado de código backend para múltiplas linguagens (Rust, Go, TypeScript, Python, Kotlin) com auto-detecção de arquitetura, aplicando regras universais de segurança OWASP, consistência de dados, concorrência e checklists idiomáticos por linguagem.
 
 ---
 
 # Backend Code Review
 
-Review guide for backend projects using:
+Review guide for backend projects across multiple languages and architectural patterns:
 
-- Node.js
-- TypeScript
-- Express
-- TypeORM
-- MySQL
-- Clean Architecture
-- tsyringe
-- Jest
+- **Supported Languages:** Rust, Go, TypeScript / Node.js, Python, Kotlin, and general backend stacks.
+- **Architectural Patterns:** Clean Architecture, Hexagonal / Ports & Adapters, Idiomatic Go packages, Rust crates/modules, Vertical Slice, Layered MVC.
 
-Use templates in `references/comment-templates.md` to format comments.
+Review findings use the structured templates in `references/comment-templates.md`.
 
 ---
 
@@ -33,9 +27,9 @@ Follow the steps **in order**.
 The user must provide the code to review. This can be:
 
 - A diff (git diff, PR diff)
-- Specific files
+- Specific files or directories
 - A code snippet
-- A branch name (the agent will read the diff)
+- A branch name (the agent will inspect the branch diff against the stable base)
 
 If the user does not provide code, ask:
 
@@ -43,75 +37,86 @@ If the user does not provide code, ask:
 
 ---
 
-# Step 2 — Apply review rules
+# Step 2 — Detect project context & architecture
 
-Apply the rules defined in:
+Before evaluating rules, discover the project's stack and architecture:
 
-```
-references/review-rules.md
-```
-
-Also apply rules from (located in `.opencode/rules/`, `~/.config/opencode/rules/`, or `rules/`):
-
-- `rules/backend-anti-patterns.md` — anti-pattern detection
-- `rules/backend-security-review.md` — security vulnerability detection
-- `rules/staff-engineer-review.md` — Staff Engineer-level review dimensions
-
-Prioritize:
-
-## 🔴 Critical
-
-- security
-- data consistency
-- bugs
-
-## 🟡 Important
-
-- architecture
-- performance
-- tests
-
-## 🟢 Improvements
-
-- patterns
-- naming
-- organization
+1. **Language & Ecosystem Detection:**
+   - Inspect file extensions in the diff (`.rs`, `.go`, `.ts`/`.js`, `.py`, `.kt`/`.kts`).
+   - Inspect project manifest files (`Cargo.toml`, `go.mod`, `package.json`, `pyproject.toml`, `build.gradle.kts`, `pom.xml`).
+2. **Architecture Discovery:**
+   - Inspect the target repository's `AGENTS.md` or architecture documentation if present.
+   - Inspect the directory structure (e.g. `cmd/`, `internal/`, `pkg/` for Go; `crates/`, `src/` for Rust; `controllers/`, `usecases/`, `domain/`, `infra/` for Clean Architecture; `features/` for Vertical Slice).
+   - Establish the boundary convention: Transport/Entrypoint → Domain/Application → Persistence/Infrastructure.
 
 ---
 
-# Step 3 — Analyze critical dimensions
+# Step 3 — Apply Layer 1: Universal Backend Review Rules
 
-For each finding, evaluate across all review dimensions:
+Apply universal backend rules defined in:
 
-1. **Architecture** — layer violations, coupling, boundary breaches
-2. **Domain Design** — misplaced business logic, anemic entities
-3. **Scalability** — N+1, in-memory filters, unbounded queries
-4. **Reliability** — missing error handling, missing transactions
-5. **Observability** — missing logs, generic errors
-6. **Testability** — untestable code, missing mocks
+- `references/review-rules.md` — universal backend standards and architecture boundaries
+
+Also apply organization backend rules (located in `.opencode/rules/`, `~/.config/opencode/rules/`, or `rules/`):
+
+- `rules/backend-anti-patterns.md` — universal backend anti-patterns
+- `rules/backend-security-review.md` — OWASP security vulnerabilities & input validation
+- `rules/staff-engineer-review.md` — Staff Engineer review dimensions (Architecture, Domain, Scalability, Reliability, Observability, Testability)
+
+Prioritize findings by severity:
+
+## 🔴 Critical (Block Merge)
+- Security vulnerabilities (SQL/Command injection, SSRF, broken AuthN/AuthZ, hardcoded credentials)
+- Data corruption & lack of atomic transactions
+- Concurrency bugs (race conditions, goroutine leaks, deadlocks, lock held across await)
+- Critical runtime crashes (unhandled errors, unwrap/expect in production paths, floating promises)
+
+## 🟡 Important (Fix in Current MR)
+- Architectural boundary violations & leaky abstractions
+- Performance bottlenecks (N+1 queries, in-memory filtering, blocking I/O in async runtimes)
+- Missing unit tests for critical business logic
+- Resource leaks (unclosed sockets, unmanaged connections)
+
+## 💡 Suggestions (Optional Improvements)
+- Code simplification, readability, naming, and idiomatic pattern enhancements
 
 ---
 
-# Step 4 — Generate structured preview
+# Step 4 — Apply Layer 2: Language-Specific Idiomatic Checklist
 
-Generate a preview using templates from `references/comment-templates.md`:
+Consult `references/language-checklists.md` for specific language checklists matching the files under review:
+
+- **Rust (`.rs`):** `.unwrap()` / `.expect()` in production, locks across `.await`, `unsafe` safety invariants, blocking calls in Tokio, integer truncation via `as`, cancel-safety in `tokio::select!`, unnecessary `.clone()`, typed `Result` with `thiserror`/`anyhow`.
+- **Go (`.go`):** Ignored errors (`_ = fn()`), goroutine leaks, data races, missing `resp.Body.Close()` / `rows.Close()`, `http.DefaultClient` without timeout, `context.Context` propagation, `defer` inside loops, error wrapping with `%w`, slice memory leaks.
+- **TypeScript / Node.js (`.ts`, `.js`):** Floating Promises (missing `await`), `any` or unchecked assertions, mass assignment, Event Loop blocking, `forEach` with async callbacks, unhandled Stream/EventEmitter errors, sequential `await` in loops, DTO validation.
+- **Python (`.py`):** Mutable default arguments, bare `except:` / silent `except Exception: pass`, blocking sync calls inside `async def`, unreferenced `asyncio.create_task`, unsafe deserialization (`pickle`/`yaml`), `assert` for business validation, ORM N+1 lazy loading, missing type hints, context manager `with` usage.
+- **Kotlin (`.kt`, `.kts`):** `!!` operator, catching `Exception` without rethrowing `CancellationException`, `GlobalScope`, blocking I/O on `Dispatchers.Default`, `runBlocking` in reactive/coroutine threads, Spring `@Transactional` on private/self calls, data classes as JPA `@Entity`, exposing mutable collections.
+
+> [!IMPORTANT]
+> **Non-Exhaustive Deep Inspection:** The checklists above are the baseline floor (hard minimum), not a ceiling. As a Staff Backend Engineer, evaluate deeper runtime mechanics, framework lifecycles, concurrency models, and security advisories even if not explicitly enumerated in the checklist.
+
+---
+
+# Step 5 — Generate structured inline preview
+
+Generate inline review comments using the templates in `references/comment-templates.md`:
 
 ```
 ## Review Preview
 
-### [FILE: src/controllers/user-controller.ts]
+### [FILE: src/api/user_handler.go]
 
-Line 32 | 🔴 Bug
+Line 45 | 🔴 Concurrency / Resource Leak
 
 Problem description.
 
-Suggestion.
+Suggestion with concrete code snippet.
 
 ---
 
-### [FILE: src/usecases/create-user.ts]
+### [FILE: src/domain/order.rs]
 
-Line 14 | 🟡 Architecture
+Line 88 | 🟡 Architecture / Boundary
 
 Description.
 
@@ -126,11 +131,11 @@ Suggestions: N
 
 ---
 
-# Step 5 — Issue summary
+# Step 6 — Generate executive review summary
 
-At the end, generate a structured summary:
+At the end of the review, generate an executive summary:
 
-```
+```markdown
 ## Code Review — Summary
 
 ### Findings
@@ -156,10 +161,10 @@ At the end, generate a structured summary:
 
 # Important Guidelines
 
-- Always read the full code/diff before commenting
-- Never comment without understanding the context
-- Classify every finding by severity
-- Provide concrete suggestions, not just criticism
-- Distinguish between "must fix" (🔴) and "nice to have" (💡)
-- If no critical issues are found, state that clearly
-- Focus on the code — do not speculate about Jira tickets or external requirements
+- Always read the full code/diff before commenting.
+- Never comment without understanding the context and project architecture.
+- Classify every finding by severity (🔴 Critical, 🟡 Important, 💡 Suggestion).
+- Provide concrete suggestions and runnable code snippets in the target language, not just criticism.
+- Distinguish between "must fix" (🔴) and "nice to have" (💡).
+- If no critical issues are found, state that clearly.
+- Focus on the code — do not speculate about external tools or Jira tickets.

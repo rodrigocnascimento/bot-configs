@@ -2,9 +2,11 @@
 
 ## Context
 
-During code review or code generation, common anti-patterns must be detected, classified, and corrected. This rule defines the anti-patterns catalogue for backend projects using Node.js, TypeScript, Express, TypeORM, MySQL, Clean Architecture, tsyringe, and Jest.
+During code review or code generation, common anti-patterns must be detected, classified, and corrected. This rule defines the universal anti-patterns catalogue for backend projects across multiple languages (Rust, Go, TypeScript, Python, Kotlin) and architectures (Clean Architecture, Hexagonal, Go packages, Rust modules, Vertical Slice).
 
-Whenever an anti-pattern is identified, it MUST be classified by severity and a concrete alternative MUST be suggested.
+For detailed language-specific checklists and rules, refer to `skills/backend-code-review/references/language-checklists.md`.
+
+Whenever an anti-pattern is identified, it MUST be classified by severity and a concrete alternative MUST be suggested in the target language.
 
 ---
 
@@ -12,262 +14,227 @@ Whenever an anti-pattern is identified, it MUST be classified by severity and a 
 
 | Severity     | Criteria                                          |
 | ------------ | ------------------------------------------------- |
-| 🔴 Critical  | May cause bug, vulnerability, or data corruption  |
-| 🟡 Important | Impacts architecture or maintainability           |
-| 💡 Suggestion| Optional improvement                              |
+| 🔴 Critical  | May cause bug, vulnerability, crash, or data corruption |
+| 🟡 Important | Impacts architecture, scalability, or maintainability   |
+| 💡 Suggestion| Non-blocking idiomatic or structural improvement  |
 
 ---
 
 # 🔴 Critical Anti-Patterns
 
-## 1. Controller accessing repository directly
+## 1. Transport / Entrypoint Accessing Persistence Directly
 
 Wrong:
+Controllers, gRPC handlers, or event consumers querying the database directly:
 
-```ts
-const user = await userRepository.findOne(id)
+```
+Transport Handler ──(direct query)──> Database
 ```
 
-Reason: Controllers must not access persistence directly.
+Reason: Violates separation of concerns. Makes logic untestable without a database and couples transport to storage schema.
 
 Correct:
+Route requests through domain/application use cases or services:
 
-```ts
-controller → usecase → repository
+```
+Transport Handler ──> Application / Use Case ──> Repository / Storage Port ──> Database
 ```
 
 ---
 
-## 2. Manually concatenated SQL
+## 2. Dynamic Unsanitized SQL / Command Construction
 
 Wrong:
+Interpolating variables directly into queries or shell commands:
 
-```ts
-await repository.query(
-  `SELECT * FROM users WHERE id = ${userId}`
-)
+```
+query = "SELECT * FROM users WHERE id = " + user_id
 ```
 
-Risk: SQL Injection.
+Risk: SQL Injection or Command Injection.
 
 Correct:
+Always use parameterized queries, prepared statements, or ORM parameter binding:
 
-```ts
-await repository.query(
-  "SELECT * FROM users WHERE id = ?",
-  [userId]
-)
+```
+// Parameterized query:
+SELECT * FROM users WHERE id = $1   // (PostgreSQL / Rust)
+SELECT * FROM users WHERE id = ?    // (MySQL / Go / TypeScript)
 ```
 
 ---
 
-## 3. Promise without await
+## 3. Unhandled Asynchronous Failures & Task Leaks
 
 Wrong:
+- TypeScript: Promises executed without `await` or `.catch()`.
+- Go: Spawning goroutines without `context.Context` cancellation or channel exit conditions.
+- Rust: Calling blocking I/O or `std::thread::sleep` directly inside Tokio worker threads.
+- Python: Blocking synchronous calls (`requests.get`, `time.sleep`) inside `async def` endpoints.
+- Kotlin: Catching `Exception` inside coroutines without rethrowing `CancellationException`, breaking Structured Concurrency.
 
-```ts
-service.execute(data)
-```
-
-Problem: silent errors, execution outside expected flow.
+Problem: Silent data loss, thread starvation, goroutine/memory leaks, or server lockup.
 
 Correct:
+Always handle async completions explicitly, propagate cancellation contexts, and dispatch blocking work to dedicated thread pools.
 
-```ts
-await service.execute(data)
+---
+
+## 4. Multi-Operation Mutation Without Transaction
+
+Wrong:
+Executing multiple database mutations that depend on each other without an atomic transaction:
+
+```
+saveOrder(order)
+savePayment(payment) // If this fails, order is orphaned!
+```
+
+Risk: Inconsistent database state, phantom records, and financial/data discrepancies.
+
+Correct:
+Wrap multi-table or multi-entity mutations in an atomic transaction or Unit-of-Work:
+
+```
+Begin Transaction
+  saveOrder(tx, order)
+  savePayment(tx, payment)
+Commit Transaction
 ```
 
 ---
 
-## 4. Multiple operations without transaction
+## 5. Domain Depending on Infrastructure Details
 
 Wrong:
-
-```ts
-await orderRepository.save(order)
-await paymentRepository.save(payment)
-```
-
-Risk: inconsistent state.
+Domain entities or core business logic importing concrete database drivers, HTTP frameworks, or cloud SDKs.
 
 Correct:
-
-```ts
-await dataSource.transaction(async manager => {
-  await manager.save(order)
-  await manager.save(payment)
-})
-```
+Invert dependencies. Domain defines interfaces/ports; infrastructure implements them.
 
 ---
 
-## 5. Domain depending on infrastructure
+## 6. Swallowed Errors & Production Panics
 
 Wrong:
+- Go: Ignoring returned errors (`_ = fn()`).
+- Rust: Calling `.unwrap()` or `.expect()` on fallible runtime inputs.
+- Python: Bare `except:` or `except Exception: pass`.
+- Kotlin: Using the `!!` assertion operator on nullable inputs.
 
-```ts
-domain → repository
-domain → orm
-```
+Risk: Uncaught panics crash worker processes; swallowed errors lead to silent corruption.
 
 Correct:
-
-```ts
-domain → interfaces
-infra → implementation
-```
+Propagate typed errors with contextual information or handle fallbacks explicitly.
 
 ---
 
 # 🟡 Important Anti-Patterns
 
-## 6. In-memory filter after full load
+## 7. In-Memory Filtering After Full Table Load
 
 Wrong:
+Loading full tables or large result sets into memory and filtering with language array methods:
 
-```ts
-const users = await repository.find()
-return users.filter(u => u.active)
+```
+records = db.findAll()
+return records.filter(r => r.active)
 ```
 
-Problem: loads all records into memory.
+Problem: High memory footprint, network saturation, and quadratic performance degradation as data grows.
 
 Correct:
-
-```ts
-repository.find({
-  where: { active: true }
-})
-```
+Push filtering, sorting, and pagination down to the database query level (`WHERE active = true LIMIT 50`).
 
 ---
 
-## 7. N+1 Queries
+## 8. N+1 Queries in Loops
 
 Wrong:
+Querying associated records iteratively inside a loop:
 
-```ts
-for (const order of orders) {
-  await repository.findItems(order.id)
-}
+```
+for item in items:
+    details = db.fetchDetails(item.id)
 ```
 
 Correct:
-
-```ts
-leftJoinAndSelect("order.items", "items")
-```
+Use batch queries (`WHERE id IN (...)`), joins, or eager loading relations.
 
 ---
 
-## 8. Sequential async loop
+## 9. Sequential Processing of Independent Async Operations
 
 Wrong:
-
-```ts
-for (const item of items) {
-  await process(item)
-}
-```
+Awaiting independent network or database calls one by one sequentially when they could run concurrently.
 
 Correct:
-
-```ts
-await Promise.all(items.map(process))
-```
+Use concurrent execution with bounded concurrency (`Promise.all`, Go `sync.WaitGroup`/errgroup, Python `asyncio.gather`, Kotlin `async/awaitAll`).
 
 ---
 
-## 9. Excessive use of `any`
+## 10. Lack of Input DTOs / Schema Validation
 
 Wrong:
-
-```ts
-function create(data: any)
-```
-
-Problem: loss of type safety.
+Accepting untrusted input payloads directly into domain or database layers without schema validation or whitelisting.
 
 Correct:
-
-```ts
-function create(data: CreateUserDTO)
-```
+Define typed DTOs and validate payloads at the boundary using schema validators (Zod, Pydantic, class-validator, Go struct tags).
 
 ---
 
-## 10. Functions too large
+## 11. Overly Complex Functions (Low Cohesion)
 
 Heuristic:
+- Functions exceeding 50 lines with multiple responsibilities.
+- Deeply nested control flow (more than 3 levels of nesting).
 
-- more than 50 lines
-- multiple responsibilities
-
-Suggestion: split into smaller functions or extract use case.
+Suggestion: Extract cohesive subroutines, use guard clauses, or extract dedicated use cases.
 
 ---
 
 # 💡 Suggestion Anti-Patterns
 
-## 11. Unstructured logs
+## 12. Unstructured String Logging
 
 Wrong:
+Printing plain text or unstructured strings:
 
-```ts
-console.log("user created", user)
+```
+log("User created: " + user.id)
 ```
 
 Correct:
+Emit structured key-value logs without logging sensitive data (passwords, tokens, PII):
 
-```ts
-logger.info("user_created", { userId: user.id })
+```
+logger.info("user_created", { user_id: user.id })
 ```
 
 ---
 
-## 12. Missing DTO
+# Detection Protocol
 
-Controllers must not work directly with entities.
+During review or code generation, verify:
 
-Wrong:
+### Architectural Boundaries
+- Transport entrypoints must not invoke database drivers directly.
+- Domain must not import transport or database infrastructure packages.
 
-```ts
-createUser(user: User)
-```
+### Database Operations
+- Check for dynamic string interpolation in queries.
+- Check for mutations without transactions.
+- Check for `.filter()` / in-memory operations after fetching collections.
+- Check for queries executed inside iteration loops.
 
-Correct:
+### Concurrency & Async
+- Check for missing awaits, unhandled task promises, or leaked goroutines.
+- Check for blocking calls inside async event loops/runtimes.
+- Check for synchronization locks held across await points.
 
-```ts
-createUser(dto: CreateUserDTO)
-```
-
----
-
-# Detection Heuristics
-
-During review or code generation, automatically check:
-
-### Architecture
-
-- controller importing repository
-- usecase importing express
-- domain importing orm
-
-### Database
-
-- `.find()` followed by `.filter()`
-- `.save()` inside loops
-- SQL query with template string
-
-### Async
-
-- async function without await
-- sequential loop with await
-
-### Typing
-
-- use of `any`
-- implicit return
+### Error Handling & Typing
+- Check for swallowed errors, bare `except:`, or `.unwrap()`.
+- Check for unsafe type bypasses (`any`, unchecked casts).
 
 ---
 
@@ -275,16 +242,14 @@ During review or code generation, automatically check:
 
 When detecting an anti-pattern, the system MUST:
 
-1. Classify severity
-2. Generate comment using templates from `skills/backend-code-review/references/comment-templates.md`
-3. Suggest concrete correction
-4. Count in review score
+1. Classify severity (🔴 Critical, 🟡 Important, 💡 Suggestion).
+2. Generate comment using templates from `skills/backend-code-review/references/comment-templates.md`.
+3. Provide a concrete code correction in the language under review.
+4. Count the finding in the review summary.
 
 The system MUST NOT:
-
-- Ignore Critical anti-patterns
-- Suggest `any` as a workaround
-- Approve code with SQL injection or mass assignment without flagging
+- Ignore Critical anti-patterns.
+- Approve code with SQL injection, mass assignment, unhandled panics, or transaction omission without flagging.
 
 ---
 
