@@ -42,7 +42,7 @@ VERSION_FILE="opencode.version"
 BACKUP_DIR_NAME=".opencode.bak"
 
 # Embedded version (updated at generation time)
-EMBEDDED_VERSION="2.0.0"
+EMBEDDED_VERSION="2.1.0"
 
 # Target directory base
 TARGET_BASE="${PWD:-.}"
@@ -315,17 +315,51 @@ download_version_file() {
     fi
 }
 
-# Create opencode.json (required for all installations)
+# Create opencode.json (required for all installations, OpenCode v2 schema)
 create_opencode_json() {
     local config_path="${INSTALL_DIR}/opencode.json"
+    local instructions_glob=".opencode/rules/*.md"
+    if [[ -n "$HOME_DIR" && "$TARGET_BASE" == "$HOME_DIR/.config" ]]; then
+        instructions_glob="~/.config/opencode/rules/*.md"
+    fi
+
     info "Creating opencode.json..."
     
     mkdir -p "$(dirname "$config_path")"
     
-    cat > "$config_path" <<'OPENCODE_JSON'
+    cat > "$config_path" <<OPENCODE_JSON
 {
-  "$schema": "https://opencode.ai/config.json",
-  "version": "1.0"
+  "\$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "${instructions_glob}"
+  ],
+  "permissions": [
+    {
+      "action": "shell",
+      "resource": "git push --force*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git push -f*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git reset --hard*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * main*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * master*",
+      "effect": "ask"
+    }
+  ]
 }
 OPENCODE_JSON
     
