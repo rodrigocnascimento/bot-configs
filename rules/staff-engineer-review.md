@@ -2,9 +2,9 @@
 
 ## Context
 
-During code review, the analysis must go beyond code quality. A Staff Engineer-level review evaluates design, architecture, scalability, and operational risks. This rule ensures reviews cover the dimensions that determine long-term system health.
+During code review, the analysis must go beyond surface-level code quality. A Staff Engineer-level review evaluates architecture, domain design, scalability, reliability, observability, and long-term operational health across any backend stack (Rust, Go, TypeScript, Python, Kotlin).
 
-This rule operates alongside `backend-anti-patterns.md` and `backend-security-review.md`. When rules conflict, the strictest restriction wins.
+This rule operates alongside `backend-anti-patterns.md`, `backend-security-review.md`, and `skills/backend-code-review/references/language-checklists.md`. When rules conflict, the strictest restriction wins.
 
 ---
 
@@ -23,198 +23,122 @@ During any code review, the system MUST evaluate the following dimensions in pri
 
 ## 1️⃣ Architecture
 
-Verify the code respects system layer boundaries.
+Verify the code respects the project's architectural boundaries (Clean Architecture, Hexagonal, Go packages, Rust modules/crates, Vertical Slice).
 
-Expected architecture:
+Expected dependency direction:
 
 ```mermaid
 graph LR
-  A[Controller] --> B[UseCase/Service]
-  B --> C[Repository]
-  C --> D[(Database)]
+  A[Transport / Entrypoint] --> B[Application / Domain Core]
+  B --> C[Persistence / Infrastructure]
+  C --> D[(External Services / Database)]
 ```
 
-Architectural problems include:
-
-- controller accessing repository
-- domain depending on ORM
-- services with multiple responsibilities
-- circular dependencies
-- business logic in controllers
+Architectural violations include:
+- Transport handlers (HTTP/gRPC/CLI) accessing database drivers or repositories directly.
+- Core domain logic depending on transport frameworks or concrete infrastructure drivers.
+- Leaky abstractions where database or network details bleed into domain entities.
+- Circular dependencies between packages, modules, or crates.
 
 Fundamental question:
-
-> Does this implementation maintain clear separation between layers?
+> Does this implementation preserve clean boundaries and avoid unnecessary coupling?
 
 ---
 
 ## 2️⃣ Domain Design
 
-Evaluate if business rules are correctly modeled.
-
-Check for:
-
-- business rules scattered across layers
-- duplicated logic
-- anemic entities
-- unprotected invariants
+Evaluate whether business rules and invariants are correctly modeled:
+- Business rules scattered across transport handlers instead of encapsulated in domain entities or use cases.
+- Duplicated validation or workflow logic across multiple endpoints.
+- Anemic models that fail to protect invariants.
 
 Fundamental question:
-
-> Is the business rule in the correct place?
+> Is the business rule located where it belongs according to domain invariants?
 
 ---
 
-## 3️⃣ Scalability
+## 3️⃣ Scalability & Performance
 
-Evaluate the implementation's impact in production.
-
-Check for:
-
-- N+1 queries
-- queries without index
-- queries loading unnecessary data
-- heavy synchronous processing
-- sequential async loops
+Evaluate the implementation's impact under production workloads:
+- N+1 query patterns in loops instead of batching or joining.
+- Unbounded queries lacking `LIMIT` clauses or pagination.
+- In-memory filtering/sorting of full dataset results.
+- Synchronous blocking calls executed within asynchronous event loops or worker pools (e.g. Tokio, Node.js event loop, Python asyncio, Kotlin coroutines).
 
 Fundamental question:
-
-> Will this code work well with 10x more data?
+> Will this implementation sustain a 10x increase in traffic and dataset size without degrading?
 
 ---
 
-## 4️⃣ Reliability
+## 4️⃣ Reliability & Resilience
 
-Evaluate system resilience.
-
-Check for:
-
-- missing error handling
-- retry on external calls
-- missing timeouts
-- data inconsistency
-- absence of transactions
+Evaluate system fault-tolerance and consistency:
+- Multi-operation mutations executed without atomic database transactions.
+- Lack of timeouts and circuit breakers on external HTTP/gRPC calls.
+- Unhandled errors, floating promises, or unchecked `.unwrap()` / panic triggers.
+- Concurrency bugs (race conditions, goroutine leaks, deadlocks, locks held across await).
 
 Fundamental question:
-
-> What happens if something fails here?
+> What happens if an external dependency fails, times out, or returns an unexpected error here?
 
 ---
 
 ## 5️⃣ Observability
 
-Evaluate if the system is operable in production.
-
-Check for:
-
-- structured logs
-- missing logs in critical flows
-- generic error messages
-- difficulty of diagnosis
+Evaluate whether the system can be operated and diagnosed in production:
+- Structured logging with contextual metadata (request ID, tenant ID, entity ID).
+- No sensitive data (passwords, tokens, PII) leaked into logs.
+- Meaningful domain error messages and status code mappings rather than generic internal errors.
 
 Fundamental question:
-
-> Will we be able to debug this in production?
+> Will on-call engineers have enough context to diagnose an incident in production?
 
 ---
 
 ## 6️⃣ Testability
 
-Verify how easy it is to test the code.
-
-Common problems:
-
-- concrete dependencies
-- logic in controllers
-- missing interfaces
-- lack of mocks
+Verify how easily the code can be tested in isolation:
+- Heavy reliance on concrete external infrastructure rather than interfaces/ports.
+- Business logic coupled to framework singletons or global state.
+- Presence of unit tests covering happy path, edge cases, and failure scenarios.
 
 Fundamental question:
-
-> Can we test this module in isolation?
+> Can we verify this module's behavior in automated tests without spinning up external dependencies?
 
 ---
 
 # Finding Classification
 
-During review, classify findings in three categories:
+Classify all findings into three clear tiers:
 
 | Severity     | Criteria                               |
 | ------------ | -------------------------------------- |
-| 🔴 Critical  | Risk of bug, failure, or vulnerability |
-| 🟡 Important | Impact on architecture or maintenance  |
-| 💡 Suggestion| Structural improvement                 |
-
----
-
-# Advanced Heuristics
-
-Always look for:
-
-### Excessive coupling
-
-Example: service depending on multiple repositories
-
-### Low cohesion
-
-Example: function executing multiple responsibilities
-
-### Boundary violation
-
-Example: infrastructure accessing domain rules
-
-### Unnecessary complexity
-
-Example: abstractions without need
-
----
-
-# Guiding Questions
-
-During review, the system must mentally evaluate:
-
-1. Is this implementation the **simplest possible**?
-2. Will this code be **easy to maintain a year from now**?
-3. Are there **unhandled edge cases**?
-4. Does this code **scale with more data or traffic**?
-5. Does the architecture remain **coherent** after this change?
+| 🔴 Critical  | Risk of security flaw, data corruption, crash, or severe concurrency bug |
+| 🟡 Important | Impact on architecture, scalability, or maintainability |
+| 💡 Suggestion| Non-blocking idiomatic or structural refinement |
 
 ---
 
 # Hard Execution Gate
 
 The system MUST NOT:
-
-- Ignore architectural violations (controller → repository)
-- Approve code without error handling for async operations
-- Ignore N+1 queries or in-memory filters
-- Skip observability concerns in critical flows
+- Ignore architectural boundary violations (e.g. entrypoint bypassing domain to call persistence).
+- Approve code with unhandled async operations, task leaks, or omitted transactions.
+- Ignore N+1 queries, in-memory dataset filters, or blocking async runtimes.
+- Skip testability and reliability concerns in critical paths.
 
 The system MUST:
-
-- Flag every architectural violation
-- Generate an architecture-level comment when coupling is detected
-- Suggest moving logic to the correct layer
-
----
-
-# Integration with Other Rules
-
-This rule operates together with:
-
-- `rules/backend-anti-patterns.md` — specific anti-pattern detection
-- `rules/backend-security-review.md` — security vulnerability detection
-
-Use comment templates from:
-
-- `skills/backend-code-review/references/comment-templates.md`
+- Flag architectural violations and explain the systemic impact.
+- Suggest moving logic to the appropriate layer with concrete code snippets.
+- Use the templates in `skills/backend-code-review/references/comment-templates.md`.
 
 ---
 
 ## Security Principle
 
-Architecture is not optional.
+Architecture and reliability are not optional.
 
-Correct layer > convenience.
+Correct layer > quick shortcut.
 Explicit boundary > implicit coupling.
+Resilient > optimistic.
 Testable > clever.

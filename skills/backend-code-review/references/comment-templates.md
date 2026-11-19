@@ -6,10 +6,10 @@ Use these templates when formatting review comments.
 
 Every comment must have:
 
-1. **Severity emoji**
-2. **Category**
-3. **Objective description**
-4. **Concrete suggestion**
+1. **Severity emoji** (🔴 Critical, 🟡 Important, 💡 Suggestion)
+2. **Category** (Bug, Security, Data Consistency, Architecture, Performance, Concurrency, Error Handling, Missing Test)
+3. **Objective description** with clear impact
+4. **Concrete suggestion** with a code snippet in the target language (`<lang>`)
 
 > Always address the developer as **"Developer"**.
 
@@ -22,11 +22,11 @@ Every comment must have:
 
 Developer, the implemented logic does not correctly cover the expected scenario.
 
-[Describe current behavior and impact.]
+[Describe current behavior, edge case, and impact.]
 
 **Suggestion:**
-```ts
-// corrected code
+```<lang>
+// corrected code in target language (Rust, Go, TypeScript, Python, Kotlin)
 ```
 ````
 
@@ -34,20 +34,20 @@ Developer, the implemented logic does not correctly cover the expected scenario.
 
 # 🔴 Security
 
-```markdown
-🔴 **Security**: [Title]
+````markdown
+🔴 **Security**: [Title - e.g. SQL Injection / Mass Assignment / SSRF]
 
-Developer, this implementation may introduce a vulnerability.
+Developer, this implementation introduces a security vulnerability.
 
-[Describe attack vector: SQL injection, data exposure, auth bypass.]
+[Describe attack vector: SQL injection, mass assignment, unauthenticated access, SSRF.]
 
-Impact: [unauthorized access, data leak, etc.]
+**Impact:** [unauthorized data access, privilege escalation, data leak]
 
 **Suggestion:**
-```ts
-// secure implementation
+```<lang>
+// secure implementation with parameterized queries / schema validation
 ```
-```
+````
 
 ---
 
@@ -56,64 +56,82 @@ Impact: [unauthorized access, data leak, etc.]
 ````markdown
 🔴 **Data Consistency**: Operations without transaction
 
-Developer, this flow executes multiple database operations without a transaction.
+Developer, this flow executes multiple database mutations without an atomic transaction boundary.
 
-If one fails, the system may be left in an inconsistent state.
+If one operation fails midway, the database will be left in an inconsistent or orphaned state.
 
 **Suggestion:**
-```ts
-await dataSource.transaction(async manager => {
-  await manager.save(entity1)
-  await manager.save(entity2)
-})
+```<lang>
+// wrap related operations inside an atomic transaction / Unit of Work
 ```
 ````
 
 ---
 
-# 🟡 Architecture — Clean Architecture
+# 🔴 Concurrency / Resource Leak
 
-```markdown
-🟡 **Architecture**: Layer violation
+````markdown
+🔴 **Concurrency**: [Goroutine leak / Lock across await / Unbounded task]
 
-Developer, this logic is being executed in the wrong layer.
+Developer, this concurrency flow can lead to deadlocks, memory leaks, or thread starvation.
 
-Controllers should only orchestrate HTTP requests and delegate business rules to use cases.
+[Describe specific issue: goroutine without cancellation context, mutex held across async await, or unclosed resource.]
 
-**Suggestion:** move the logic to `usecases/`.
+**Suggestion:**
+```<lang>
+// bounded concurrency / explicit cancellation / scoped lock
 ```
+````
 
 ---
 
-# 🟡 Persistence — TypeORM
+# 🟡 Architecture — Boundary Violation
 
-```markdown
-🟡 **Persistence**: In-memory filter
+````markdown
+🟡 **Architecture**: Boundary violation
 
-Developer, this filter is being applied after loading data from the database.
+Developer, this logic is placed in the wrong layer or module.
 
-This can cause high memory consumption and performance degradation.
+Transport and entrypoint handlers should only validate inputs, orchestrate requests, and delegate business rules to the application/domain layer.
 
-**Suggestion:** move the filter to the SQL query or QueryBuilder.
+**Impact:** Tight coupling between infrastructure and business logic, hindering testability and reuse.
+
+**Suggestion:** Move business invariants to the domain/application layer and use interfaces/ports for persistence dependencies.
+````
+
+---
+
+# 🟡 Persistence — Query Performance & N+1
+
+````markdown
+🟡 **Persistence**: [N+1 Query / In-Memory Filter / Unbounded Query]
+
+Developer, this implementation causes performance degradation under production load.
+
+[Describe issue: queries inside loops, loading full dataset into memory for filtering, or missing pagination limit.]
+
+**Impact:** High latency, database connection pool exhaustion, and elevated memory consumption.
+
+**Suggestion:**
+```<lang>
+// batch queries, eager load relations, or push filtering to the database query
 ```
+````
 
 ---
 
 # 🟡 Error Handling
 
 ````markdown
-🟡 **Error Handling**: Missing explicit treatment
+🟡 **Error Handling**: Missing explicit treatment / Swallowed error
 
-Developer, this async call may fail and has no error handling.
+Developer, this fallible operation lacks explicit error handling or swallows errors without context.
+
+**Impact:** Failures will be silent or result in unexpected panics/crashes downstream.
 
 **Suggestion:**
-```ts
-try {
-  await service.execute(data)
-} catch (error) {
-  logger.error(error)
-  throw new AppError("Failed to process request")
-}
+```<lang>
+// propagate typed errors with context or handle explicitly
 ```
 ````
 
@@ -121,31 +139,16 @@ try {
 
 # 🟡 Missing Test
 
-```markdown
-🟡 **Missing Test**: [Use case name]
+````markdown
+🟡 **Missing Test**: [Module / Function name]
 
-Developer, this module contains relevant business logic and has no unit tests.
+Developer, this module introduces or modifies core business logic but lacks automated tests.
 
-Suggestion: add tests covering:
-
-- happy path
-- error handling
-- main business rules
-```
-
----
-
-# 🟡 Performance
-
-```markdown
-🟡 **Performance**: N+1 Query
-
-Developer, this implementation may generate multiple queries when accessing relations.
-
-Impact: performance degradation with large data volumes.
-
-**Suggestion:** use `leftJoinAndSelect` or controlled eager loading.
-```
+**Suggestion:** Add unit/integration tests covering:
+- Happy path
+- Error scenarios & boundary conditions
+- Core business invariants
+````
 
 ---
 
@@ -154,11 +157,11 @@ Impact: performance degradation with large data volumes.
 ````markdown
 💡 **Suggestion**: [Title]
 
-Developer, this implementation can be simplified to improve readability and maintenance.
+Developer, this implementation can be simplified to improve readability, performance, or idiomatic style.
 
 **Alternative:**
-```ts
-// suggested code
+```<lang>
+// suggested idiomatic improvement
 ```
 ````
 
@@ -192,8 +195,8 @@ Developer, this implementation can be simplified to improve readability and main
 
 # Severity Guide
 
-| Emoji | Level      | Action          |
-| ----- | ---------- | --------------- |
-| 🔴    | Critical   | Block merge     |
-| 🟡    | Important  | Fix in this MR   |
-| 💡    | Suggestion | Optional        |
+| Emoji | Level      | Action          | Description |
+| ----- | ---------- | --------------- | ----------- |
+| 🔴    | Critical   | Block merge     | Vulnerabilities, data loss, crashes, severe concurrency bugs |
+| 🟡    | Important  | Fix in this MR  | Architectural violations, N+1 queries, missing tests |
+| 💡    | Suggestion | Optional        | Idiomatic style, readability, non-blocking improvements |
